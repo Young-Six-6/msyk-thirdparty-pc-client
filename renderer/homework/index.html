@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>作业</title>
+  <link rel="stylesheet" href="../common/theme.css">
+  <link rel="stylesheet" href="./homework.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="left">
+      <button id="backBtn" class="back">←</button>
+      <div class="title">作业</div>
+    </div>
+    <div class="right">
+      <input id="kw" placeholder="搜索作业名称"/>
+      <button id="searchBtn">搜索</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-statu="1" class="tab active">新作业</button>
+    <button data-statu="4" class="tab">已结束</button>
+    <button data-statu="3" class="tab">待订正</button>
+    <button data-statu="2" class="tab">待批改</button>
+  </div>
+
+  <div class="filters">
+    <div class="pill-row" id="subjects">
+      <button class="pill active" data-subject="">全</button>
+      <button class="pill" data-subject="HIS">史</button>
+      <button class="pill" data-subject="PHY">物</button>
+      <button class="pill" data-subject="CHI">语</button>
+      <button class="pill" data-subject="MATH">数</button>
+      <button class="pill" data-subject="ENG">英</button>
+      <button class="pill" data-subject="CHEM">化</button>
+      <button class="pill" data-subject="BIO">生</button>
+    </div>
+
+    <div class="selects">
+      <select id="typeSel">
+        <option value="-1">全部类型</option>
+        <option value="0">预习作业</option>
+        <option value="1">复习作业</option>
+        <option value="3">课后作业</option>
+        <option value="5">阅读材料</option>
+        <option value="6">小测</option>
+        <option value="7">答题卡</option>
+      </select>
+
+      <select id="sizeSel">
+        <option value="12" selected>12条/页</option>
+        <option value="24">24条/页</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="pager" id="pager" style="display:none;">
+    <button id="prev">上一页</button>
+    <div id="pageInfo"></div>
+    <button id="next">下一页</button>
+  </div>
+  <script src="../common/theme.js"></script>
+  <script src="./homework.js"></script>
+</body>
+</html>

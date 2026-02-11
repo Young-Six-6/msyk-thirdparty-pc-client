@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>作业详情</title>
+  <script src="../common/theme.js"></script>
+  <!-- 全局主题变量 -->
+  <link rel="stylesheet" href="../common/theme.css">
+  <!-- 本页样式 -->
+  <link rel="stylesheet" href="./homeworkDetail.css">
+</head>
+
+<body>
+  <div class="topbar">
+    <button id="backBtn" class="back">← 返回</button>
+    <div class="title">作业详情</div>
+  </div>
+
+  <webview
+    id="wv"
+    partition="persist:msyk"
+    useragent="Mozilla/5.0 (Linux; Android 15; NE2210 Build/AP3A.240617.008; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.58 Mobile Safari/537.36"
+  ></webview>
+
+  <script>
+    // 初始化全局主题（深 / 浅）
+    window.Theme?.initTheme();
+
+    const wv = document.getElementById('wv');
+
+    // 只对“阅读材料”在暗色模式下注入暗色 CSS
+    function injectMaterialCss() {
+      let cur = '';
+      try { cur = wv.getURL ? wv.getURL() : ''; } catch {}
+
+      // 仅匹配阅读材料
+      const isMaterial = /msyk\.wpstatic\.cn\/squirrel\/information\//.test(cur);
+      if (!isMaterial) return;
+
+      // 仅暗色模式下注入
+      const theme = window.Theme?.getTheme?.() || 'dark';
+      if (theme !== 'dark') return;
+
+      const css = `
+        html, body {
+          background: #0f1226 !important;
+          color: #eaf2ff !important;
+        }
+        * {
+          color: inherit !important;
+          border-color: rgba(255,255,255,.15) !important;
+          scrollbar-color: rgba(255,255,255,.35) rgba(255,255,255,.08) !important;
+        }
+        img, video, canvas, svg {
+          filter: brightness(.9) contrast(1.05) !important;
+        }
+        a { color: #9cc8ff !important; }
+        table, td, th { background: transparent !important; }
+        input, textarea, select {
+          background: rgba(255,255,255,.06) !important;
+          color: #eaf2ff !important;
+          border: 1px solid rgba(255,255,255,.18) !important;
+        }
+      `;
+
+      wv.insertCSS(css).catch(() => {});
+    }
+
+    // URLSearchParams.get 已经自动解码
+    const url = new URLSearchParams(location.search).get('url');
+    wv.src = url || 'about:blank';
+
+    wv.addEventListener('dom-ready', injectMaterialCss);
+    wv.addEventListener('did-navigate', injectMaterialCss);
+    wv.addEventListener('did-navigate-in-page', injectMaterialCss);
+
+    // 返回策略：
+    // 1) webview 内能返回 → webview.goBack()
+    // 2) 否则 → 返回作业列表
+    function goBack() {
+      try {
+        if (wv && typeof wv.canGoBack === 'function' && wv.canGoBack()) {
+          wv.goBack();
+          return;
+        }
+      } catch {}
+
+      if (history.length > 1) history.back();
+      else location.href = '../homework/index.html?from=detail';
+    }
+
+    document.getElementById('backBtn').addEventListener('click', goBack);
+
+    //快捷返回
+    window.addEventListener('keydown', (e) => {
+      if (e.altKey && e.key === 'ArrowLeft') goBack();
+    });
+  </script>
+</body>
+</html>

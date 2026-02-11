@@ -1,0 +1,27 @@
+/* 默认：暗色模式 */
+:root{
+  --bg:#0f1226;
+  --panel:rgba(255,255,255,.06);
+  --panel2:rgba(20,24,50,.92);
+  --border:rgba(255,255,255,.12);
+  --text:#eaf2ff;
+  --muted:rgba(234,242,255,.72);
+  --accent:#00c2ff;
+
+  --primary:#00c2ff;
+  --danger:#ff5d7a;
+}
+
+/* 浅色模式 */
+:root[data-theme="light"]{
+  --bg:#f6f7fb;
+  --panel:#ffffff;
+  --panel2:#ffffff;
+  --border:rgba(0,0,0,.08);
+  --text:#111827;
+  --muted:#6b7280;
+  --accent:#2563eb;
+
+  --primary:#2563eb;
+  --danger:#dc2626;
+}

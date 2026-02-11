@@ -1,0 +1,48 @@
+{
+  "name": "learning-desktop",
+  "version": "1.0.1",
+  "description": "Learning Desktop Application",
+  "author": "Your Name",
+  "main": "main/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^28.2.8",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.learning.desktop",
+    "productName": "没师有课",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": true
+    },
+    "asar": true
+  },
+  "dependencies": {
+    "undici": "^7.21.0"
+  }
+}

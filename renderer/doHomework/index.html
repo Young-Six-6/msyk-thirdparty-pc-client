@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>做作业</title>
+  <link rel="stylesheet" href="../common/theme.css">
+  <link rel="stylesheet" href="./doHomework.css" />
+</head>
+<body>
+  <div class="topbar">
+    <button id="backBtn" class="btn ghost">返回</button>
+    <div class="titleWrap">
+      <div id="title" class="title">做作业</div>
+      <div class="sub">
+        <span id="timer">00:00</span>
+        <span id="statusText"></span>
+      </div>
+    </div>
+    <button id="submitBtn" class="btn primary">提交</button>
+  </div>
+
+  <div class="main">
+    <div class="pane left">
+      <div class="paneTitle">材料</div>
+      <webview id="pdfWv" src="about:blank" partition="persist:msyk" allowpopups></webview>
+      <div id="pdfEmpty" class="empty" style="display:none;">本作业没有材料 PDF</div>
+    </div>
+
+    <div class="pane right">
+      <div class="paneTitle">答题</div>
+
+      <div id="qList" class="qList"></div>
+
+      <div class="actions">
+        <button id="saveBtn" class="btn">保存（仅上传/保存答案）</button>
+        <button id="submitBtn2" class="btn primary">提交</button>
+      </div>
+
+      <input id="fileInput" type="file" accept="image/*" style="display:none;" />
+    </div>
+  </div>
+
+  <div id="toast" class="toast" style="display:none;"></div>
+  <script src="../common/theme.js"></script>
+  <script src="./doHomework.js"></script>
+</body>
+</html>

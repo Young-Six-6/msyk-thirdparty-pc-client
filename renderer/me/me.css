@@ -1,0 +1,123 @@
+:root{
+  --bg:#0f1226;
+  --panel:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.12);
+  --text:#eaf2ff;
+  --muted:rgba(234,242,255,.72);
+  --accent:#00c2ff;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+.app-top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+}
+.title{
+  flex:1;
+  text-align:left;
+  font-weight:900;
+}
+
+/* 统一按钮（返回/退出） */
+.btn{
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text);
+  cursor:pointer;
+}
+.btn.ghost:hover{
+  border-color:rgba(255,255,255,.30);
+  background:rgba(255,255,255,.06);
+}
+.btn.ghost:active{
+  transform:translateY(1px);
+  background:rgba(0,194,255,.10);
+  border-color:rgba(0,194,255,.35);
+}
+
+.app-body{
+  flex:1;
+  overflow:auto;
+  padding:14px 14px 80px;
+}
+.card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px;
+}
+.card-title{font-weight:900;margin-bottom:10px}
+.row{
+  display:flex;
+  gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.row.clickable{
+  cursor:pointer;
+}
+.row.clickable:hover{
+  background:rgba(255,255,255,.04);
+}
+.row.clickable:active{
+  background:rgba(0,194,255,.10);
+}
+
+.row:last-child{border-bottom:none}
+.k{width:84px;color:var(--muted)}
+.v{flex:1;word-break:break-all}
+
+/* 调试区 */
+.debug{margin-top:12px;opacity:.9}
+.debug pre{
+  white-space:pre-wrap;
+  word-break:break-all;
+  background:rgba(0,0,0,.22);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px;
+}
+
+/* 底部 tabbar 与 Home 一致 */
+.tabbar{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  display:flex;
+  gap:10px;
+  justify-content:space-around;
+  align-items:center;
+  background:rgba(20,24,50,.92);
+  border-top:1px solid var(--border);
+  padding:10px 12px;
+}
+.tab{
+  flex:1;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+}
+.tab:hover{border-color:rgba(255,255,255,.30)}
+.tab:active{transform:translateY(1px)}
+.tab.active{
+  color:var(--accent);
+  border-color:rgba(0,194,255,.35);
+  background:rgba(0,194,255,.10);
+}

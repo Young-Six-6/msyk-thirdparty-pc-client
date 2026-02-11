@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Home</title>
+  <link rel="stylesheet" href="../common/theme.css">
+  <link rel="stylesheet" href="./home.css"/>
+</head>
+<body>
+  <!-- 顶部栏 -->
+  <div class="app-top">
+    <div class="user">
+      <img id="avatar" class="avatar" src="" alt="avatar">
+      <div class="info">
+        <div id="hello" class="name">加载中...</div>
+        <div id="sub" class="sub"> </div>
+      </div>
+    </div>
+    <button id="logout" class="btn ghost">退出</button>
+  </div>
+
+  <div class="card" id="statsCard">
+    <div class="card-title">学习数据</div>
+    <div class="stats">
+      <div class="stat">
+        <div class="num" id="finishNum">--</div>
+        <div class="lab">累计完成作业</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="usedDays">--</div>
+        <div class="lab">已使用天数</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主内容 -->
+  <div class="app-body">
+    <div class="card">
+      <div class="card-title">快捷入口</div>
+      <div class="grid">
+        <button id="homeworkBtn" class="tile primary">
+          <div class="tile-title">作业</div>
+          <div class="tile-sub">新作业 / 已结束</div>
+        </button>
+
+        <button class="tile">
+          <div class="tile-title">学习圈</div>
+          <div class="tile-sub">（即将上线）</div>
+        </button>
+
+        <button class="tile">
+          <div class="tile-title">错题本</div>
+          <div class="tile-sub">（即将上线）</div>
+        </button>
+
+        <button id="meBtn" class="tile">
+          <div class="tile-title">我的</div>
+          <div class="tile-sub">个人信息</div>
+        </button>
+
+      </div>
+    </div>
+    <details class="debug">
+      <summary>调试信息</summary>
+      <pre id="session"></pre>
+    </details>
+  </div>
+
+  <!-- 底部 TabBar -->
+  <div class="tabbar">
+    <button class="tab active" data-go="home">主页</button>
+    <button class="tab" data-go="homework">作业</button>
+    <button class="tab" data-go="me">我的</button>
+  </div>
+  <script src="../common/theme.js"></script>
+  <script src="./home.js"></script>
+</body>
+</html>
