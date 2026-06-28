@@ -1,0 +1,18 @@
+# 所有文本文件自动处理换行，仓库统一存LF
+* text=auto eol=lf
+# Windows脚本强制CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+# Shell脚本强制LF
+*.sh text eol=lf
+# 二进制文件不转换换行
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.dll binary
+*.exe binary
+*.zip binary
+*.rar binary
