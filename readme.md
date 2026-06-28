@@ -13,8 +13,13 @@
 <img src="./pics/homeworkdetail.png" width = "300" height = "200" alt="homeworkView" />
 
 ## Todo  
-下个版本：统一深浅色样式  
-Android Phone项目：`待开发`
+[⍻]统一深浅色  
+[⍻]提高信息可读性  
+[-]完善关于页面  
+[-]美化ui  
+[-]自定义背景  
+[X]学习圈和错题本（可能不会开发）  
+[X]Android Phone项目：`待开发`
 
 ## Changelogs
 `v0.0.1` 新建项目，使用包装web端的方法  
@@ -22,6 +27,7 @@ Android Phone项目：`待开发`
 `v0.5.0` 支持作业查看，解决割裂体验  
 `v1.0.0` 重写项目，使用android api，允许自定义设备mac，逐步支持v0.x.x的部分功能  
 `v1.0.1` 添加浅色支持，可以切换深浅色，修复返回按钮无效，初始发布  
+`v1.0.2` 统一深浅色样式,支持记住密码，截止时间采用可读时间替换时间戳  
 
 ## Documents
 软件本体都没完善怎么写文档

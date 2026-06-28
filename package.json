@@ -6,19 +6,48 @@
   "main": "main/main.js",
   "scripts": {
     "dev": "electron .",
-    "build": "electron-builder --win --x64"
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win --x64"
   },
   "devDependencies": {
-    "electron": "^28.2.8",
+    "electron": "^28.3.3",
     "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "undici": "^7.21.0"
   },
   "build": {
     "appId": "com.learning.desktop",
     "productName": "没师有课",
+
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
+
+    "files": [
+      "main/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "package.json",
+      "!dist/**",
+      "!build/**",
+      "!*.md",
+      "!*.log",
+      "!.git/**",
+      "!.github/**"
+    ],
+
+    "asar": true,
+
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ],
+
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -32,17 +61,16 @@
             "x64"
           ]
         }
-      ],
-      "icon": "build/icon.ico"
+      ]
     },
+
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": true
-    },
-    "asar": true
-  },
-  "dependencies": {
-    "undici": "^7.21.0"
+      "deleteAppDataOnUninstall": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "没师有课"
+    }
   }
 }
