@@ -3,3 +3,20 @@ body{margin:0;font-family:sans-serif;background:#0f1226;color:#fff;display:flex;
 input{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:#fff}
 button{padding:10px 12px;border-radius:10px;border:none;background:#00c2ff;color:#001018;font-weight:700;cursor:pointer}
 #tips{margin:0;color:#ffb3b3;min-height:18px}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary, #888);
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--primary, #4a90e2);
+}

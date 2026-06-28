@@ -33,6 +33,15 @@ function escapeHtml(s) {
   }[c]));
 }
 
+function formatTime(ts) {
+  if (!ts) return '';
+  const n = Number(ts);
+  if (!n || n < 1000000000000) return String(ts); // 非毫秒时间戳原样返回
+  const d = new Date(n);
+  const pad = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function toWpStatic(u) {
   if (!u) return '';
   if (/^https?:\/\//i.test(u)) return u;
@@ -53,11 +62,11 @@ function renderList(data) {
     const subject = it.subjectName || it.subject || '';
     const teacher = it.teacherName || '';
     const count = it.totalCount ?? it.questionNum ?? '';
-    const endTime = it.endTimeStr || it.endTime || '';
+    const endTime = it.endTimeStr || formatTime(it.endTime) || '';
     const hwId = it.homeworkId || it.id || '';
     const modifyNum = it.modifyNum ?? it.modifyTimes ?? 0;
 
-    const hwType = Number(it.homeworkType ?? it.type ?? -1); // ✅ homeworkType 起作用
+    const hwType = Number(it.homeworkType ?? it.type ?? -1); //homeworkType 起作用
     const btnText = state.statu === 1 ? '去做作业' : '查看';
 
     return `

@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>作业详情</title>
   <script src="../common/theme.js"></script>
-  <!-- 全局主题变量 -->
   <link rel="stylesheet" href="../common/theme.css">
-  <!-- 本页样式 -->
   <link rel="stylesheet" href="./homeworkDetail.css">
 </head>
 
@@ -24,60 +22,116 @@
   ></webview>
 
   <script>
-    // 初始化全局主题（深 / 浅）
     window.Theme?.initTheme();
 
     const wv = document.getElementById('wv');
 
-    // 只对“阅读材料”在暗色模式下注入暗色 CSS
-    function injectMaterialCss() {
-      let cur = '';
-      try { cur = wv.getURL ? wv.getURL() : ''; } catch {}
+    // 基础暗色样式
+    const BASE_DARK_CSS = `
+      html, body {
+        background: #0f1226 !important;
+        color: #eaf2ff !important;
+      }
+      * {
+        color: inherit !important;
+        border-color: rgba(255,255,255,.15) !important;
+        scrollbar-color: rgba(255,255,255,.35) rgba(255,255,255,.08) !important;
+      }
+      img, video, canvas, svg {
+        filter: brightness(.9) contrast(1.05) !important;
+      }
+      a { color: #9cc8ff !important; }
+      table, td, th { background: transparent !important; }
+      input, textarea, select {
+        background: rgba(255,255,255,.06) !important;
+        color: #eaf2ff !important;
+        border: 1px solid rgba(255,255,255,.18) !important;
+      }
+    `;
 
-      // 仅匹配阅读材料
-      const isMaterial = /msyk\.wpstatic\.cn\/squirrel\/information\//.test(cur);
-      if (!isMaterial) return;
+    // 答题卡页面颜色
+    const QUESTION_CARD_EXTRA_CSS = `
+      /* 题目容器 */
+      .dtk-container, .title-container {
+        background: #161929 !important;
+        border-color: rgba(255,255,255,.1) !important;
+      }
+      /* 文字色 */
+      .col-333 { color: #eaf2ff !important; }
+      .col-999 { color: #8899bb !important; }
+      /* 得分标签 */
+      .right-score, .left-scroe {
+        background: rgba(255,255,255,.08) !important;
+        color: #7ecbff !important;
+      }
+      /* 选项徽章 */
+      .right-answer-my span[class^="option"],
+      .right-answer-my span[class*=" option"] {
+        background: #1e2a45 !important;
+        color: #eaf2ff !important;
+      }
+      /* 已选中的正确答案高亮 */
+      .right-answer-my span.active {
+        background: #2a5298 !important;
+        color: #fff !important;
+      }
+      /* 答题切换 tab */
+      .span-class {
+        background: rgba(255,255,255,.06) !important;
+        color: #8899bb !important;
+      }
+      .span-class.active {
+        background: #2a5298 !important;
+        color: #fff !important;
+      }
+      /* 分隔线 */
+      .two-container-list {
+        border-bottom-color: rgba(255,255,255,.08) !important;
+      }
+      /* 填空题下划线 */
+      .underline-input::after {
+        background-color: rgba(255,255,255,.3) !important;
+      }
+      /* 求讲标签 */
+      .tip-jie-answer {
+        color: #ffb84d !important;
+      }
+      /* 教师评语 */
+      .teacherMessage {
+        color: #c8d8f0 !important;
+      }
+    `;
 
-      // 仅暗色模式下注入
+    // 注入颜色
+
+    function injectDarkCss() {
+      // 非暗色模式跳过
       const theme = window.Theme?.getTheme?.() || 'dark';
       if (theme !== 'dark') return;
 
-      const css = `
-        html, body {
-          background: #0f1226 !important;
-          color: #eaf2ff !important;
-        }
-        * {
-          color: inherit !important;
-          border-color: rgba(255,255,255,.15) !important;
-          scrollbar-color: rgba(255,255,255,.35) rgba(255,255,255,.08) !important;
-        }
-        img, video, canvas, svg {
-          filter: brightness(.9) contrast(1.05) !important;
-        }
-        a { color: #9cc8ff !important; }
-        table, td, th { background: transparent !important; }
-        input, textarea, select {
-          background: rgba(255,255,255,.06) !important;
-          color: #eaf2ff !important;
-          border: 1px solid rgba(255,255,255,.18) !important;
-        }
-      `;
+      let cur = '';
+      try { cur = wv.getURL ? wv.getURL() : ''; } catch {}
 
+      // 类型1：阅读材料（HTM）
+      const isMaterial = /msyk\.wpstatic\.cn\/squirrel\/information\//.test(cur);
+
+      // 类型2：答题卡预览
+      const isQuestionCard = /www\.msyk\.cn\/webview\//.test(cur);
+
+      if (!isMaterial && !isQuestionCard) return;
+
+      const css = BASE_DARK_CSS + (isQuestionCard ? QUESTION_CARD_EXTRA_CSS : '');
       wv.insertCSS(css).catch(() => {});
     }
 
-    // URLSearchParams.get 已经自动解码
+
     const url = new URLSearchParams(location.search).get('url');
     wv.src = url || 'about:blank';
 
-    wv.addEventListener('dom-ready', injectMaterialCss);
-    wv.addEventListener('did-navigate', injectMaterialCss);
-    wv.addEventListener('did-navigate-in-page', injectMaterialCss);
+    wv.addEventListener('dom-ready',          injectDarkCss);
+    wv.addEventListener('did-navigate',       injectDarkCss);
+    wv.addEventListener('did-navigate-in-page', injectDarkCss);
 
-    // 返回策略：
-    // 1) webview 内能返回 → webview.goBack()
-    // 2) 否则 → 返回作业列表
     function goBack() {
       try {
         if (wv && typeof wv.canGoBack === 'function' && wv.canGoBack()) {
@@ -92,7 +146,6 @@
 
     document.getElementById('backBtn').addEventListener('click', goBack);
 
-    //快捷返回
     window.addEventListener('keydown', (e) => {
       if (e.altKey && e.key === 'ArrowLeft') goBack();
     });
