@@ -51,3 +51,6 @@ electron-builder-effective-config.yaml
 
 # 日志文件
 *.log
+
+内部文档/
+

@@ -37,3 +37,6 @@ document.querySelectorAll('.tabbar .tab').forEach(btn => {
 $('#settingEntry')?.addEventListener('click', () => {
   location.href = '../settings/index.html?from=me';
 });
+$('#aboutEntry')?.addEventListener('click', () => {
+  location.href = '../about/index.html?from=me';
+});
