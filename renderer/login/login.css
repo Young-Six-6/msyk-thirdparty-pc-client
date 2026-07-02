@@ -1,7 +1,7 @@
-body{margin:0;font-family:sans-serif;background:#0f1226;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh}
-.card{background:rgba(255,255,255,.06);padding:22px;border-radius:14px;min-width:320px;display:flex;flex-direction:column;gap:10px}
-input{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:#fff}
-button{padding:10px 12px;border-radius:10px;border:none;background:#00c2ff;color:#001018;font-weight:700;cursor:pointer}
+body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text);display:flex;align-items:center;justify-content:center;height:100vh}
+.card{background:var(--panel);padding:22px;border-radius:14px;min-width:320px;display:flex;flex-direction:column;gap:10px}
+input{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text)}
+button{padding:10px 12px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
 #tips{margin:0;color:#ffb3b3;min-height:18px}
 
 .remember-label {

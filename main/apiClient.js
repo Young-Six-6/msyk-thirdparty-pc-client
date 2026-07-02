@@ -481,6 +481,62 @@ class ApiClient {
     return await this.postSigned('/ws/common/homework/homeworkStatus/modifyWithNoScore', params);
   }
 
+  // 阅读材料：单题用时提交  ws/student/homework/studentHomework/readHomeworksubmitTime
+  async submitReadHomeworkTime({
+    homeworkId,
+    resourceId,
+    studentId,
+    quesNum = '',
+    usedTime = '',
+    unitId,
+  } = {}) {
+    const sid = studentId || this.session.studentId;
+    const uid = unitId || this.session.unitId;
+    if (!homeworkId) throw new Error('submitReadHomeworkTime 缺少 homeworkId');
+    if (!resourceId) throw new Error('submitReadHomeworkTime 缺少 resourceId');
+    if (!sid) throw new Error('submitReadHomeworkTime 缺少 studentId');
+    if (!uid) throw new Error('submitReadHomeworkTime 缺少 unitId');
+
+    const params = {
+      homeworkId: String(homeworkId),
+      resourceId: String(resourceId),
+      studentId: String(sid),
+      quesNum: String(quesNum ?? ''),
+      usedTime: String(usedTime || Date.now()),
+      unitId: String(uid),
+    };
+    return await this.postSigned('/ws/student/homework/studentHomework/readHomeworksubmitTime', params);
+  }
+
+  // 阅读材料：总计用时提交（完成阅读） ws/common/homework/homeworkStatus/readHomeworkModify
+  async submitReadHomeworkCountTime({
+    homeworkId,
+    userId,
+    groupId = '',
+    startTime = '',
+    endTime = '',
+    time = '',
+    unitId,
+  } = {}) {
+    const sid = userId || this.session.studentId;
+    const uid = unitId || this.session.unitId;
+    if (!homeworkId) throw new Error('submitReadHomeworkCountTime 缺少 homeworkId');
+    if (!sid) throw new Error('submitReadHomeworkCountTime 缺少 userId/studentId');
+    if (!uid) throw new Error('submitReadHomeworkCountTime 缺少 unitId');
+
+    const now = Date.now();
+    const params = {
+      homeworkId: String(homeworkId),
+      userId: String(sid),
+      groupId: String(groupId ?? ''),
+      startTime: String(startTime || now),
+      endTime: String(endTime || now),
+      time: String(time || now),
+      unitId: String(uid),
+    };
+    return await this.postSigned('/ws/common/homework/homeworkStatus/readHomeworkModify', params);
+  }
+
   // 已完成/查看：H5 预览 URL（仍保留给 homeworkType=7 && statu!=1）
   getStudentHomeworkCardPreviewUrl({
     homeworkId,

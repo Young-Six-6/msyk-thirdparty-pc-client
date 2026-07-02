@@ -13,7 +13,7 @@
 <img src="./pics/homeworkdetail.png" width = "300" height = "200" alt="homeworkView" />
 
 ## Todo  
-[⍻]统一深浅色  
+[+]统一深浅色  
 [⍻]提高信息可读性  
 [-]完善关于页面  
 [-]美化ui  
@@ -22,6 +22,8 @@
 [-]增加GitHub page介绍页  
 [X]学习圈和错题本（可能不会开发）  
 [X]Android Phone项目：`待开发`
+
+[+] 暂时认为完成 [⍻] 部分完成 [-] 等待完成 [X] 近期不会完成  
 
 ## Changelogs
 `v0.0.1` 新建项目，使用包装web端的方法  

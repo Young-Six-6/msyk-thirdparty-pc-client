@@ -153,6 +153,27 @@ function registerApiIpc(ipcMain, apiClient) {
     }
   });
 
+  // ====== 阅读材料 ======
+  ipcMain.handle('hw:submitReadTime', async (event, payload = {}) => {
+    try {
+      const { status, data, raw } = await apiClient.submitReadHomeworkTime(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data, raw };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:submitReadCountTime', async (event, payload = {}) => {
+    try {
+      const { status, data, raw } = await apiClient.submitReadHomeworkCountTime(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data, raw };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
   // ====== home ======
   ipcMain.handle('home:stats', async () => {
     try {

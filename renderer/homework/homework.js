@@ -125,7 +125,7 @@ function renderList(data) {
         return;
       }
 
-      //homeworkType=5：阅读材料 → homeworkStatus 取 resourceList[].resourceUrl（*.htm）
+      // homeworkType=5：阅读材料 → homeworkStatus 取 resourceList[].resourceUrl（*.htm）
       if (hwType === 5) {
         const st = await window.electronAPI.hwStatus({ homeworkId, modifyNum });
         if (!st || st.code !== 200) {
@@ -134,28 +134,43 @@ function renderList(data) {
         }
 
         const resList = st.data?.resourceList || [];
-        const rel = resList.find((x) => x?.resourceUrl) || resList[0];
-        const htmRel = rel?.resourceUrl || '';
+        const urlArr = resList
+          .map(x => x?.resourceUrl ? toWpStatic(x.resourceUrl) : '')
+          .filter(u => u);
 
-        if (!htmRel) {
+        if (!urlArr.length) {
           alert('未找到阅读材料链接（resourceUrl）');
           return;
         }
 
-        const openUrl = toWpStatic(htmRel);
-        location.href = `../homeworkDetail/index.html?url=${encodeURIComponent(openUrl)}`;
+        // 收集 resourceId 列表（用于单题用时上报）
+        const resIds = resList
+          .filter(x => x?.resourceUrl)
+          .map(x => String(x.id || x.resourceId || ''));
+
+        const urlsJson = encodeURIComponent(JSON.stringify(urlArr));
+        const resIdsJson = encodeURIComponent(JSON.stringify(resIds));
+        const params = `homeworkId=${encodeURIComponent(homeworkId)}&modifyNum=${encodeURIComponent(modifyNum)}&isRead=1&urls=${urlsJson}&resIds=${resIdsJson}`;
+        location.href = `../homeworkDetail/index.html?${params}`;
         return;
       }
 
       const st = await window.electronAPI.hwStatus({ homeworkId, modifyNum });
-      let openUrl = '';
       if (st && st.code === 200) {
         const resList = st.data?.resourceList || [];
-        const rel = resList.find((x) => x?.resourceUrl) || resList[0];
-        if (rel?.resourceUrl) openUrl = toWpStatic(rel.resourceUrl);
+        const urlArr = resList
+          .map(x => x?.resourceUrl ? toWpStatic(x.resourceUrl) : '')
+          .filter(u => u);
+
+        if (urlArr.length) {
+          const urlsJson = encodeURIComponent(JSON.stringify(urlArr));
+          location.href = `../homeworkDetail/index.html?urls=${urlsJson}`;
+          return;
+        }
       }
 
-      if (!openUrl) {
+      // 兜底：hwCardPreviewUrl（仍然单 URL）
+      {
         const resp = await window.electronAPI.hwCardPreviewUrl({
           homeworkId,
           modifyNum,
@@ -167,10 +182,8 @@ function renderList(data) {
           alert(resp?.msg || '生成作业链接失败');
           return;
         }
-        openUrl = resp.data.url;
+        location.href = `../homeworkDetail/index.html?url=${encodeURIComponent(resp.data.url)}`;
       }
-
-      location.href = `../homeworkDetail/index.html?url=${encodeURIComponent(openUrl)}`;
     });
   });
 }

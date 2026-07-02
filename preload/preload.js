@@ -24,4 +24,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveBitmap: (payload) => ipcRenderer.invoke('hw:saveBitmap', payload),
   saveStuScoreAndAnswer: (payload) => ipcRenderer.invoke('hw:saveStuScoreAndAnswer', payload),
   doSubmitHomework: (payload) => ipcRenderer.invoke('hw:doSubmitHomework', payload),
+
+  // ===== 阅读材料 =====
+  submitReadTime: (payload) => ipcRenderer.invoke('hw:submitReadTime', payload),
+  submitReadCountTime: (payload) => ipcRenderer.invoke('hw:submitReadCountTime', payload),
 });
