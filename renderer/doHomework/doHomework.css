@@ -127,7 +127,10 @@ body{
   border-radius:12px;
   padding:10px;
   background: rgba(255,255,255,.02);
+  cursor:pointer;
+  transition: border-color .15s;
 }
+.qCard:hover{ border-color:rgba(255,255,255,.15); }
 
 .qTop{
   display:flex;
@@ -156,6 +159,84 @@ body{
   gap:8px;
   align-items:center;
   flex-wrap:wrap;
+}
+
+.qTypeBadge{
+  display:inline-block;
+  font-size:10px;
+  font-weight:500;
+  padding:2px 6px;
+  border-radius:6px;
+  background:rgba(59,130,246,.15);
+  color:var(--primary);
+  vertical-align:middle;
+}
+
+.dirtyMark{
+  color:var(--primary);
+  font-weight:700;
+  font-size:14px;
+}
+
+.optGroup{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.optLabel{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  cursor:pointer;
+  font-size:13px;
+  transition: background .12s;
+  user-select:none;
+}
+.optLabel:hover{ background:rgba(255,255,255,.04); }
+.optLabel:has(input:checked){
+  border-color:var(--primary);
+  background:rgba(59,130,246,.12);
+}
+
+.optLabel input[type="radio"],
+.optLabel input[type="checkbox"]{
+  accent-color:var(--primary);
+  width:15px;
+  height:15px;
+  cursor:pointer;
+  margin:0;
+}
+
+.optBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:rgba(255,255,255,.06);
+  font-size:12px;
+  font-weight:600;
+}
+
+.tiankongRow{ display:flex; gap:8px; }
+.tkInput{
+  flex:1;
+  min-width:120px;
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:rgba(0,0,0,.15);
+  color:var(--text);
+  font-size:14px;
+}
+.tkInput:focus{
+  outline:none;
+  border-color:var(--primary);
 }
 
 .thumb{

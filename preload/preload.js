@@ -16,7 +16,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   hwStatus: (payload) => ipcRenderer.invoke('hw:status', payload),
 
   // ===== do homework (API flow) =====
-  // 注意：这些事件名要与 main/apiIpc.js 里的 ipcMain.handle完全一致
   checkHomeworkEndTime: (payload) => ipcRenderer.invoke('hw:checkHomeworkEndTime', payload),
   getHomeworkCardInfo: (payload) => ipcRenderer.invoke('hw:getHomeworkCardInfo', payload),
   getHomeworkTime: (payload) => ipcRenderer.invoke('hw:getHomeworkTime', payload),
@@ -24,6 +23,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveBitmap: (payload) => ipcRenderer.invoke('hw:saveBitmap', payload),
   saveStuScoreAndAnswer: (payload) => ipcRenderer.invoke('hw:saveStuScoreAndAnswer', payload),
   doSubmitHomework: (payload) => ipcRenderer.invoke('hw:doSubmitHomework', payload),
+  saveCardAnswer: (payload) => ipcRenderer.invoke('hw:saveCardAnswer', payload),
+  saveCardAnswerObjectives: (payload) => ipcRenderer.invoke('hw:saveCardAnswerObjectives', payload),
+  addStudentExplainSign: (payload) => ipcRenderer.invoke('hw:addStudentExplainSign', payload),
+  getOssParams: () => ipcRenderer.invoke('hw:getOssParams'),
+  uploadToOss: (payload) => ipcRenderer.invoke('hw:uploadToOss', payload),
+  uploadSubjectPic: (payload) => ipcRenderer.invoke('hw:uploadSubjectPic', payload),
+  saveSubjectivesCardAnswer: (payload) => ipcRenderer.invoke('hw:saveSubjectivesCardAnswer', payload),
 
   // ===== 阅读材料 =====
   submitReadTime: (payload) => ipcRenderer.invoke('hw:submitReadTime', payload),

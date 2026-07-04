@@ -153,6 +153,76 @@ function registerApiIpc(ipcMain, apiClient) {
     }
   });
 
+  // ====== DTK 答题卡答案提交 ======
+  ipcMain.handle('hw:saveCardAnswer', async (event, payload = {}) => {
+    try {
+      const { status, data, raw } = await apiClient.saveCardAnswer(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data, raw };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:saveCardAnswerObjectives', async (event, payload = {}) => {
+    try {
+      const { status, data, raw } = await apiClient.saveCardAnswerObjectives(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data, raw };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:addStudentExplainSign', async (event, payload = {}) => {
+    try {
+      const { status, data, raw } = await apiClient.addStudentExplainSign(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data, raw };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:getOssParams', async () => {
+    try {
+      const { status, data, raw } = await apiClient.getOssParams();
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data, raw };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:uploadToOss', async (event, payload = {}) => {
+    try {
+      const { status, data } = await apiClient.uploadToOss(payload);
+      if (status !== 200) return { code: 500, msg: `OSS PUT ${status}`, raw: data };
+      return { code: 200, data };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:uploadSubjectPic', async (event, payload = {}) => {
+    try {
+      const result = await apiClient.uploadSubjectPic(payload);
+      return { code: 200, url: result.url };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:saveSubjectivesCardAnswer', async (event, payload = {}) => {
+    try {
+      const { status, data, raw } = await apiClient.saveSubjectivesCardAnswer(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data, raw };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
   // ====== 阅读材料 ======
   ipcMain.handle('hw:submitReadTime', async (event, payload = {}) => {
     try {

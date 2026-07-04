@@ -481,6 +481,191 @@ class ApiClient {
     return await this.postSigned('/ws/common/homework/homeworkStatus/modifyWithNoScore', params);
   }
 
+  // DTK答题卡：提交答案  ws/teacher/homeworkCard/saveCardAnswer
+  async saveCardAnswer({
+    answerInfo = '[]',
+    studentId,
+    homeworkId,
+    type = 0,
+    startTime = '',
+    endTime = '',
+    time = '',
+    modifyNum = 0,
+    unitId,
+  } = {}) {
+    const sid = studentId || this.session.studentId;
+    const uid = unitId || this.session.unitId;
+    if (!homeworkId) throw new Error('saveCardAnswer 缺少 homeworkId');
+    if (!sid) throw new Error('saveCardAnswer 缺少 studentId');
+    if (!uid) throw new Error('saveCardAnswer 缺少 unitId');
+
+    const now = Date.now();
+    // 官方 DTK 提交允许 startTime 为空；不要把空字符串强制替换成当前时间。
+    const start = startTime === undefined || startTime === null ? '' : String(startTime);
+    const end = endTime === undefined || endTime === null || endTime === '' ? String(now) : String(endTime);
+    let usedTime = String(time ?? '');
+    if (!usedTime) {
+      const st = Number(start);
+      const et = Number(end);
+      usedTime = start && Number.isFinite(st) && Number.isFinite(et) && et >= st
+        ? String(Math.floor((et - st) / 1000))
+        : '0';
+    }
+
+    // 字段集合与官方包保持一致：answerInfo + 学生/作业/时间/单位信息。
+    const params = {
+      answerInfo: typeof answerInfo === 'string' ? answerInfo : JSON.stringify(answerInfo),
+      studentId: String(sid),
+      homeworkId: String(homeworkId),
+      type: String(type ?? 0),
+      startTime: start,
+      endTime: end,
+      time: usedTime,
+      modifyNum: String(modifyNum ?? 0),
+      unitId: String(uid),
+    };
+    return await this.postSigned('/ws/teacher/homeworkCard/saveCardAnswer', params);
+  }
+
+  // 添加讲评标记  /ws/student/homeworkChecked/addStudentExplainSign
+  async addStudentExplainSign({
+    studentId,
+    homeworkId,
+    homeworkResourceIds = '[]',
+    unitId,
+  } = {}) {
+    const sid = studentId || this.session.studentId;
+    const uid = unitId || this.session.unitId;
+    if (!homeworkId) throw new Error('addStudentExplainSign 缺少 homeworkId');
+    if (!sid) throw new Error('addStudentExplainSign 缺少 studentId');
+    if (!uid) throw new Error('addStudentExplainSign 缺少 unitId');
+
+    const params = {
+      studentId: String(sid),
+      homeworkId: String(homeworkId),
+      homeworkResourceIds: typeof homeworkResourceIds === 'string' ? homeworkResourceIds : JSON.stringify(homeworkResourceIds || []),
+      unitId: String(uid),
+    };
+    return await this.postSigned('/ws/student/homeworkChecked/addStudentExplainSign', params);
+  }
+
+  // DTK答题卡：保存客观题答案（分号分隔） ws/teacher/homeworkCard/saveCardAnswerObjectives
+  async saveCardAnswerObjectives({
+    homeworkId,
+    studentId,
+    serialNumbers = '',
+    answers = '',
+    modifyNum = 0,
+    unitId,
+  } = {}) {
+    const sid = studentId || this.session.studentId;
+    const uid = unitId || this.session.unitId;
+    if (!homeworkId) throw new Error('saveCardAnswerObjectives 缺少 homeworkId');
+    if (!sid) throw new Error('saveCardAnswerObjectives 缺少 studentId');
+    if (!uid) throw new Error('saveCardAnswerObjectives 缺少 unitId');
+
+    const params = {
+      serialNumbers: String(serialNumbers ?? ''),
+      answers: String(answers ?? ''),
+      studentId: String(sid),
+      homeworkId: String(homeworkId),
+      unitId: String(uid),
+      modifyNum: String(modifyNum ?? 0),
+    };
+    return await this.postSigned('/ws/teacher/homeworkCard/saveCardAnswerObjectives', params);
+  }
+
+  // OSS 上传凭证  /ws/common/uploadController/getParams
+  async getOssParams({ retry = '0' } = {}) {
+    const params = { retry: String(retry ?? '0') };
+    const res = await requestForm({
+      url: `${this.baseUrl}/ws/common/uploadController/getParams`,
+      method: 'POST',
+      form: params,
+      headers: { 'user-agent': this.userAgent },
+    });
+    return res;
+  }
+
+  // OSS 直传（HMAC-SHA1签名）
+  async uploadToOss({ base64, key, accessKeyId, accessKeySecret, securityToken, contentType }) {
+    const buf = Buffer.from(base64, 'base64');
+    const ct = contentType || 'image/jpeg';
+    const contentMd5 = crypto.createHash('md5').update(buf).digest('base64');
+    const dateStr = new Date().toUTCString();
+    const resource = '/' + String(key);
+    const stringToSign = 'PUT\n' + contentMd5 + '\n' + ct + '\n' + dateStr + '\nx-oss-security-token:' + securityToken + '\n' + resource;
+    const signature = crypto.createHmac('sha1', accessKeySecret).update(stringToSign).digest('base64');
+    const url = 'https://msyk.oss-cn-shanghai.aliyuncs.com/' + key;
+    const electronNet = require('electron').net;
+    return await new Promise((resolve, reject) => {
+      const req = electronNet.request({ method: 'PUT', url });
+      req.setHeader('Content-Type', ct);
+      req.setHeader('Content-MD5', contentMd5);
+      req.setHeader('Date', dateStr);
+      req.setHeader('Authorization', 'OSS ' + accessKeyId + ':' + signature);
+      req.setHeader('x-oss-security-token', securityToken);
+      const chunks = [];
+      req.on('response', (res) => { res.on('data', (c) => chunks.push(Buffer.from(c))); res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks).toString('utf8') })); });
+      req.on('error', reject);
+      req.write(buf);
+      req.end();
+    });
+  }
+
+  // 一站式上传图片：获取OSS凭证 → OSS直传 → saveSubjectivesCardAnswer
+  async uploadSubjectPic({ base64, ext, contentType, questionId, quesNum, homeworkId, studentId, modifyNum, unitId }) {
+    // 1. 获取 OSS STS 凭证
+    const ossRes = await this.getOssParams();
+    if (ossRes.status !== 200) throw new Error('获取OSS凭证失败');
+    const ossData = typeof ossRes.data === 'object' ? ossRes.data : JSON.parse(ossRes.raw);
+    const ts = Date.now();
+    const key = 'squirrel/android/worldwide/' + ts + '/' + ts + '.' + (ext || 'jpg');
+
+    // 2. OSS 直传
+    const upRes = await this.uploadToOss({ base64, key, accessKeyId: ossData.AccessKeyId, accessKeySecret: ossData.AccessKeySecret, securityToken: ossData.SecurityToken, contentType: contentType || 'image/jpeg' });
+    if (upRes.status !== 200) throw new Error('OSS上传失败 status=' + upRes.status);
+
+    // 3. saveSubjectivesCardAnswer
+    const picUrl = 'https://msyk.wpstatic.cn/' + key;
+    const svRes = await this.saveSubjectivesCardAnswer({ questionId, quesNum, picturUrl: picUrl, uuid: '', studentId, homeworkId, unitId, modifyNum, pictureStatus: 0 });
+    if (svRes.status !== 200) throw new Error('saveSubjectivesCardAnswer失败');
+    return { url: picUrl };
+  }
+
+  // 主观题图片保存  ws/teacher/homeworkCard/saveSubjectivesCardAnswer
+  async saveSubjectivesCardAnswer({
+    questionId,
+    quesNum = '',
+    picturUrl = '',
+    uuid = '',
+    studentId,
+    homeworkId,
+    unitId,
+    modifyNum = 0,
+    pictureStatus = 0,
+  } = {}) {
+    const sid = studentId || this.session.studentId;
+    const uid = unitId || this.session.unitId;
+    if (!questionId) throw new Error('saveSubjectivesCardAnswer 缺少 questionId');
+    if (!sid) throw new Error('saveSubjectivesCardAnswer 缺少 studentId');
+    if (!homeworkId) throw new Error('saveSubjectivesCardAnswer 缺少 homeworkId');
+    if (!uid) throw new Error('saveSubjectivesCardAnswer 缺少 unitId');
+
+    const params = {
+      questionId: String(questionId),
+      quesNum: String(quesNum ?? ''),
+      picturUrl: String(picturUrl ?? ''),
+      uuid: String(uuid || this.session.studentId + '_' + Date.now()),
+      studentId: String(sid),
+      homeworkId: String(homeworkId),
+      unitId: String(uid),
+      modifyNum: String(modifyNum ?? 0),
+      pictureStatus: String(pictureStatus ?? 0),
+    };
+    return await this.postSigned('/ws/teacher/homeworkCard/saveSubjectivesCardAnswer', params);
+  }
+
   // 阅读材料：单题用时提交  ws/student/homework/studentHomework/readHomeworksubmitTime
   async submitReadHomeworkTime({
     homeworkId,
