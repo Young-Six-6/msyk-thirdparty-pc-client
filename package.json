@@ -27,6 +27,7 @@
 
     "files": [
       "main/**/*",
+      "preload/**/*",
       "renderer/**/*",
       "assets/**/*",
       "package.json",

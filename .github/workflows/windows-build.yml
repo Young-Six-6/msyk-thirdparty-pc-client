@@ -61,39 +61,35 @@ jobs:
       - name: Resolve version from package.json
         shell: pwsh
         run: |
-          node -e "
-          const fs = require('fs');
+          $pkg = Get-Content -Raw package.json | ConvertFrom-Json
+          $lock = Get-Content -Raw package-lock.json | ConvertFrom-Json -AsHashtable
 
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          $pkgVersion = $pkg.version
+          $lockVersion = $lock.packages[""].version
+          $productName = if ($pkg.build.productName) { $pkg.build.productName } elseif ($pkg.name) { $pkg.name } else { "app" }
 
-          const pkgVersion = pkg.version;
-          const lockVersion = lock && lock.packages && lock.packages[''] && lock.packages[''].version;
-          const productName = (pkg.build && pkg.build.productName) || pkg.name || 'app';
-
-          if (!pkgVersion) {
-            throw new Error('package.json 缺少 version');
+          if ([string]::IsNullOrWhiteSpace($pkgVersion)) {
+            throw "package.json 缺少 version"
           }
 
-          if (!lockVersion) {
-            throw new Error('package-lock.json 缺少 packages[\"\"].version');
+          if ([string]::IsNullOrWhiteSpace($lockVersion)) {
+            throw 'package-lock.json 缺少 packages[""].version'
           }
 
-          if (pkgVersion !== lockVersion) {
-            throw new Error(`版本不一致：package.json=${pkgVersion}, package-lock.json=${lockVersion}。请先本地执行 npm install 并提交新的 package-lock.json。`);
+          if ($pkgVersion -ne $lockVersion) {
+            throw "版本不一致：package.json=$pkgVersion, package-lock.json=$lockVersion。请先本地执行 npm install 并提交新的 package-lock.json。"
           }
 
-          const tag = `v${pkgVersion}`;
-          const title = `${productName} ${tag}`;
+          $tag = "v$pkgVersion"
+          $title = "$productName $tag"
 
-          fs.appendFileSync(process.env.GITHUB_ENV, `APP_VERSION=${pkgVersion}\n`, 'utf8');
-          fs.appendFileSync(process.env.GITHUB_ENV, `RELEASE_TAG=${tag}\n`, 'utf8');
-          fs.appendFileSync(process.env.GITHUB_ENV, `RELEASE_TITLE=${title}\n`, 'utf8');
+          "APP_VERSION=$pkgVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_TITLE=$title" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-          console.log(`APP_VERSION=${pkgVersion}`);
-          console.log(`RELEASE_TAG=${tag}`);
-          console.log(`RELEASE_TITLE=${title}`);
-          "
+          Write-Host "APP_VERSION=$pkgVersion"
+          Write-Host "RELEASE_TAG=$tag"
+          Write-Host "RELEASE_TITLE=$title"
 
       - name: Install dependencies
         shell: pwsh

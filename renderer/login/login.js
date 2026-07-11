@@ -11,7 +11,7 @@ async function initSavedLogin() {
     localStorage.removeItem('savedLogin');
   }
 
-  const resp = await window.electronAPI.getSavedLogin?.();
+  const resp = await window.electronAPI?.getSavedLogin?.();
   const saved = resp?.code === 200 && resp.data ? resp.data : legacySaved;
 
   if (saved) {
@@ -22,7 +22,9 @@ async function initSavedLogin() {
   }
 }
 
-initSavedLogin();
+initSavedLogin().catch(() => {
+  $('#tips').textContent = '应用组件加载失败，请重新安装';
+});
 
 $('#btn').addEventListener('click', async () => {
   const username = $('#username').value.trim();
@@ -33,6 +35,11 @@ $('#btn').addEventListener('click', async () => {
 
   if (!username || !password) {
     $('#tips').textContent = '请输入账号和密码';
+    return;
+  }
+
+  if (!window.electronAPI?.apiLogin) {
+    $('#tips').textContent = '应用组件加载失败，请重新安装';
     return;
   }
 
@@ -53,7 +60,7 @@ $('#btn').addEventListener('click', async () => {
     return;
   }
 
-  const saveResp = await window.electronAPI.setSavedLogin?.({
+  const saveResp = await window.electronAPI?.setSavedLogin?.({
     remember,
     username,
     password,
