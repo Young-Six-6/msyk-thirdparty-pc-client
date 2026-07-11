@@ -13,7 +13,27 @@ const $ = (s) => document.querySelector(s);
   $('#unitId').textContent = s?.unitId || '--';
 
   const pre = $('#session');
-  if (pre) pre.textContent = JSON.stringify(s, null, 2);
+  const debugPanel = document.querySelector('.debug');
+
+  const debugEnabled = (() => {
+    try {
+      if (window.MSYK_DEBUG?.get) return !!window.MSYK_DEBUG.get();
+      if (window.MSYK_DEBUG_ENABLED !== undefined) return !!window.MSYK_DEBUG_ENABLED;
+      return localStorage.getItem('msyk_debug_mode') === '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  if (debugPanel) {
+    debugPanel.classList.toggle('debug-hidden', !debugEnabled);
+  }
+
+  if (pre && debugEnabled) {
+    pre.textContent = JSON.stringify(s, null, 2);
+  } else if (pre) {
+    pre.textContent = '';
+  }
 })();
 
 $('#backBtn')?.addEventListener('click', () => {

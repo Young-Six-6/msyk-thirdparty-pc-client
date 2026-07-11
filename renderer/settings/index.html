@@ -18,9 +18,14 @@
     <div class="card">
       <div class="card-title">通用</div>
 
-      <div class="row clickable theme">
+      <div class="row clickable theme" id="themeRow">
         <span class="k">主题模式</span>
-        <span class="v" id="themeText">暗色/浅色(点我)</span>
+        <span class="v switchValue">
+          <span id="themeText">深色</span>
+          <span id="themeSwitch" class="switch" aria-hidden="true">
+            <span class="switch-dot"></span>
+          </span>
+        </span>
       </div>
 
       <div class="row">
@@ -31,9 +36,14 @@
 
     <div class="card">
       <div class="card-title">高级</div>
-      <div class="row">
+      <div class="row clickable debug" id="debugRow">
         <span class="k">调试模式</span>
-        <span class="v">常开</span>
+        <span class="v debugValue">
+          <span id="debugText">关闭</span>
+          <span id="debugSwitch" class="switch" aria-hidden="true">
+            <span class="switch-dot"></span>
+          </span>
+        </span>
       </div>
     </div>
   </div>

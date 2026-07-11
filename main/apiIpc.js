@@ -1,5 +1,20 @@
 // main/apiIpc.js
-const { writeStore } = require('./store');
+const { safeStorage } = require('electron');
+const { readStore, writeStore } = require('./store');
+
+function encryptSavedPassword(password) {
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error('系统加密服务不可用，无法安全记住密码');
+  }
+  return safeStorage.encryptString(String(password || '')).toString('base64');
+}
+
+function decryptSavedPassword(encryptedPassword) {
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error('系统加密服务不可用，无法读取已保存密码');
+  }
+  return safeStorage.decryptString(Buffer.from(String(encryptedPassword || ''), 'base64'));
+}
 
 function registerApiIpc(ipcMain, apiClient) {
   ipcMain.handle('api:login', async (event, { userName, password, macAddress }) => {
@@ -24,6 +39,47 @@ function registerApiIpc(ipcMain, apiClient) {
     apiClient.setSession(null);
     writeStore({ session: null });
     return { code: 200 };
+  });
+
+  ipcMain.handle('credentials:getSavedLogin', async () => {
+    try {
+      const savedLogin = readStore()?.savedLogin;
+      if (!savedLogin) return { code: 200, data: null };
+
+      return {
+        code: 200,
+        data: {
+          username: savedLogin.username || '',
+          password: decryptSavedPassword(savedLogin.password),
+          macAddress: savedLogin.macAddress || '',
+        },
+      };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('credentials:setSavedLogin', async (event, payload = {}) => {
+    try {
+      const { remember, username = '', password = '', macAddress = '' } = payload;
+
+      if (!remember) {
+        writeStore({ savedLogin: null });
+        return { code: 200 };
+      }
+
+      writeStore({
+        savedLogin: {
+          version: 1,
+          username: String(username || ''),
+          password: encryptSavedPassword(password),
+          macAddress: String(macAddress || ''),
+        },
+      });
+      return { code: 200 };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
   });
 
   ipcMain.handle('hw:list', async (event, payload = {}) => {

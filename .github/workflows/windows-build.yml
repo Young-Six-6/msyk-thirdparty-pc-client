@@ -1,0 +1,190 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "是否发布 GitHub Release"
+        required: true
+        type: choice
+        default: "no"
+        options:
+          - "no"
+          - "yes"
+      replace_existing_release:
+        description: "如果同版本 Release/Tag 已存在，是否覆盖；通常选 no，发新版请先改 package.json version"
+        required: true
+        type: choice
+        default: "no"
+        options:
+          - "no"
+          - "yes"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+
+    env:
+      ELECTRON_CACHE: ${{ github.workspace }}\.cache\electron
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}\.cache\electron-builder
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Cache Electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache\electron
+            .cache\electron-builder
+          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
+
+      - name: Resolve version from package.json
+        shell: pwsh
+        run: |
+          node -e "
+          const fs = require('fs');
+
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+
+          const pkgVersion = pkg.version;
+          const lockVersion = lock && lock.packages && lock.packages[''] && lock.packages[''].version;
+          const productName = (pkg.build && pkg.build.productName) || pkg.name || 'app';
+
+          if (!pkgVersion) {
+            throw new Error('package.json 缺少 version');
+          }
+
+          if (!lockVersion) {
+            throw new Error('package-lock.json 缺少 packages[\"\"].version');
+          }
+
+          if (pkgVersion !== lockVersion) {
+            throw new Error(`版本不一致：package.json=${pkgVersion}, package-lock.json=${lockVersion}。请先本地执行 npm install 并提交新的 package-lock.json。`);
+          }
+
+          const tag = `v${pkgVersion}`;
+          const title = `${productName} ${tag}`;
+
+          fs.appendFileSync(process.env.GITHUB_ENV, `APP_VERSION=${pkgVersion}\n`, 'utf8');
+          fs.appendFileSync(process.env.GITHUB_ENV, `RELEASE_TAG=${tag}\n`, 'utf8');
+          fs.appendFileSync(process.env.GITHUB_ENV, `RELEASE_TITLE=${title}\n`, 'utf8');
+
+          console.log(`APP_VERSION=${pkgVersion}`);
+          console.log(`RELEASE_TAG=${tag}`);
+          console.log(`RELEASE_TITLE=${title}`);
+          "
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          npm ci
+
+      - name: Build Windows installers
+        shell: pwsh
+        run: |
+          npm run dist:win -- --publish never
+
+      - name: Show dist files
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path dist -Recurse | Select-Object FullName, Length
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe-v${{ env.APP_VERSION }}
+          path: |
+            dist/**/*.exe
+            dist/**/*.blockmap
+            dist/**/latest.yml
+            dist/**/builder-debug.yml
+            dist/**/builder-effective-config.yaml
+          if-no-files-found: error
+
+      - name: Prepare release tag
+        if: ${{ inputs.publish_release == 'yes' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPLACE_EXISTING_RELEASE: ${{ inputs.replace_existing_release }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git fetch --tags --force
+
+          $releaseExists = $false
+          gh release view $env:RELEASE_TAG 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $releaseExists = $true
+          }
+
+          $tagExists = $false
+          $tag = git tag -l $env:RELEASE_TAG
+          if (-not [string]::IsNullOrWhiteSpace($tag)) {
+            $tagExists = $true
+          }
+
+          if (($releaseExists -or $tagExists) -and $env:REPLACE_EXISTING_RELEASE -ne "yes") {
+            throw "版本 $env:RELEASE_TAG 已存在。请把 package.json 的 version 升级后再发布；或手动选择 replace_existing_release=yes 覆盖。"
+          }
+
+          if ($releaseExists -and $env:REPLACE_EXISTING_RELEASE -eq "yes") {
+            Write-Host "Deleting existing release: $env:RELEASE_TAG"
+            gh release delete $env:RELEASE_TAG --yes --cleanup-tag
+          }
+
+          if ($tagExists -and $env:REPLACE_EXISTING_RELEASE -eq "yes") {
+            Write-Host "Deleting existing tag: $env:RELEASE_TAG"
+            git tag -d $env:RELEASE_TAG 2>$null
+            git push origin ":refs/tags/$env:RELEASE_TAG" 2>$null
+          }
+
+          Write-Host "Creating tag: $env:RELEASE_TAG"
+          git tag $env:RELEASE_TAG
+          git push origin $env:RELEASE_TAG
+
+      - name: Publish GitHub Release
+        if: ${{ inputs.publish_release == 'yes' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $files = @()
+          $files += Get-ChildItem -Path dist -Recurse -File -Filter *.exe | ForEach-Object { $_.FullName }
+          $files += Get-ChildItem -Path dist -Recurse -File -Filter *.blockmap | ForEach-Object { $_.FullName }
+          $files += Get-ChildItem -Path dist -Recurse -File -Filter latest.yml | ForEach-Object { $_.FullName }
+
+          if ($files.Count -eq 0) {
+            throw "dist 目录中没有找到可发布文件"
+          }
+
+          Write-Host "Release tag: $env:RELEASE_TAG"
+          Write-Host "Release title: $env:RELEASE_TITLE"
+          Write-Host "Files:"
+          $files | ForEach-Object { Write-Host " - $_" }
+
+          gh release create $env:RELEASE_TAG @files `
+            --title "$env:RELEASE_TITLE" `
+            --notes "自动构建版本：$env:APP_VERSION`n提交：$env:GITHUB_SHA" `
+            --latest

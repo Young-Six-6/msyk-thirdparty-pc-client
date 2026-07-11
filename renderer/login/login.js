@@ -2,14 +2,27 @@ window.Theme?.initTheme();
 
 const $ = (s) => document.querySelector(s);
 
-//自动填入账号密码
-const saved = JSON.parse(localStorage.getItem('savedLogin') || 'null');
-if (saved) {
-  $('#username').value = saved.username || '';
-  $('#password').value = saved.password || '';
-  $('#macAddress').value = saved.macAddress || '';
-  $('#remember').checked = true;
+async function initSavedLogin() {
+  let legacySaved = null;
+  try {
+    legacySaved = JSON.parse(localStorage.getItem('savedLogin') || 'null');
+    localStorage.removeItem('savedLogin');
+  } catch {
+    localStorage.removeItem('savedLogin');
+  }
+
+  const resp = await window.electronAPI.getSavedLogin?.();
+  const saved = resp?.code === 200 && resp.data ? resp.data : legacySaved;
+
+  if (saved) {
+    $('#username').value = saved.username || '';
+    $('#password').value = saved.password || '';
+    $('#macAddress').value = saved.macAddress || '';
+    $('#remember').checked = true;
+  }
 }
+
+initSavedLogin();
 
 $('#btn').addEventListener('click', async () => {
   const username = $('#username').value.trim();
@@ -40,11 +53,16 @@ $('#btn').addEventListener('click', async () => {
     return;
   }
 
-  // 根据勾选决定是否保存
-  if (remember) {
-    localStorage.setItem('savedLogin', JSON.stringify({ username, password, macAddress: macAddressInput }));
-  } else {
-    localStorage.removeItem('savedLogin');
+  const saveResp = await window.electronAPI.setSavedLogin?.({
+    remember,
+    username,
+    password,
+    macAddress: macAddressInput,
+  });
+
+  if (!saveResp || saveResp.code !== 200) {
+    $('#tips').textContent = saveResp?.msg || '登录成功，但保存登录信息失败';
+    return;
   }
 
   location.href = '../home/index.html';

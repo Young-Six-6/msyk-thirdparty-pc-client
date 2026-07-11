@@ -71,3 +71,57 @@ body{
 .row:last-child{border-bottom:none}
 .k{width:100px;color:var(--muted)}
 .v{flex:1}
+
+
+.row.clickable{
+  cursor:pointer;
+  user-select:none;
+}
+.row.clickable:hover{
+  background:rgba(255,255,255,.04);
+  border-radius:10px;
+  padding-left:8px;
+  padding-right:8px;
+  margin-left:-8px;
+  margin-right:-8px;
+}
+
+.switchValue,
+.debugValue{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.switch{
+  width:42px;
+  height:24px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.14);
+  position:relative;
+  flex:0 0 auto;
+  transition:background .16s,border-color .16s;
+}
+
+.switch-dot{
+  position:absolute;
+  left:3px;
+  top:3px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:var(--muted);
+  transition:transform .16s,background .16s;
+}
+
+.switch.on{
+  background:rgba(0,194,255,.22);
+  border-color:rgba(0,194,255,.55);
+}
+
+.switch.on .switch-dot{
+  transform:translateX(18px);
+  background:var(--accent);
+}

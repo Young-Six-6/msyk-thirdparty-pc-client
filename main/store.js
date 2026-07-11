@@ -19,7 +19,8 @@ function readStore() {
 
 function writeStore(obj) {
   const p = getStorePath();
-  fs.writeFileSync(p, JSON.stringify(obj, null, 2), 'utf8');
+  const old = readStore();
+  fs.writeFileSync(p, JSON.stringify({ ...old, ...obj }, null, 2), 'utf8');
 }
 
 module.exports = { readStore, writeStore };

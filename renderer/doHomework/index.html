@@ -15,6 +15,14 @@
       <div class="sub">
         <span id="timer">00:00</span>
         <span id="statusText"></span>
+        <span id="debugAnswerTimePanel" class="debugAnswerTimePanel" style="display:none;">
+          <label class="debugAnswerSwitch">
+            <input id="debugAnswerTimeEnabled" type="checkbox">
+            <span class="debugAnswerSwitchUi" aria-hidden="true"></span>
+            <span>自定义时间</span>
+          </label>
+          <input id="debugAnswerTimeInput" class="debugAnswerTimeInput" type="text" inputmode="numeric" placeholder="秒或mm:ss" disabled>
+        </span>
       </div>
     </div>
     <button id="submitBtn" class="btn primary">提交</button>
@@ -22,9 +30,19 @@
 
   <div class="main">
     <div class="pane left">
-      <div class="paneTitle">材料</div>
-      <webview id="pdfWv" partition="persist:msyk" allowpopups></webview>
-      <div id="pdfEmpty" class="empty" style="display:none;">本作业没有材料 PDF</div>
+      <div class="paneTitle materialTitle">
+        <span class="materialLabel">材料</span>
+        <div id="materialNav" class="materialNav" style="display:none;">
+          <button id="prevMaterialBtn" class="btn" type="button">上一张</button>
+          <span id="materialIndicator">1 / 1</span>
+          <button id="nextMaterialBtn" class="btn" type="button">下一张</button>
+        </div>
+      </div>
+    
+      <div class="pdfContainer">
+        <webview id="pdfWv" partition="persist:msyk" allowpopups></webview>
+        <div id="pdfEmpty" class="empty" style="display:none;">本作业没有材料 PDF</div>
+      </div>
     </div>
 
     <div class="pane right">

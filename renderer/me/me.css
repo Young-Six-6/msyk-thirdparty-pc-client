@@ -110,3 +110,8 @@ body {
   border-color: color-mix(in srgb, var(--accent) 35%, transparent);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
+
+/* 调试信息默认隐藏，仅调试模式开启时显示 */
+.debug.debug-hidden{
+  display:none;
+}

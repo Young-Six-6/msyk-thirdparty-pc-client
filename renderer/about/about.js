@@ -5,7 +5,7 @@ const $ = (s) => document.querySelector(s);
 (async () => {
 
     const appName = "没师有课";
-    const appVersion = "v1.0.2";
+    const appVersion = "v1.1.3";
 
     $("#appName").textContent = appName;
     $("#appVersion").textContent = appVersion;
