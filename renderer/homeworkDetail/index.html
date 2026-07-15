@@ -53,6 +53,7 @@
     let isReadMode = false;  // 是否为阅读材料模式
     let homeworkId = '';
     let modifyNum = 0;
+    let listFrom = 'home';
     let startTime = 0;       // 开始阅读时间(ms)
     let perQStartTime = 0;   // 当前题开始时间
 
@@ -78,6 +79,7 @@
       isReadMode = p.get('isRead') === '1';
       homeworkId = p.get('homeworkId') || '';
       modifyNum = Number(p.get('modifyNum') || 0);
+      listFrom = p.get('from') === 'me' ? 'me' : 'home';
 
       // 优先解析 urls（JSON 数组）
       const raw = p.get('urls');
@@ -209,7 +211,7 @@
 
         toast('提交成功');
         setTimeout(() => {
-          location.href = '../homework/index.html';
+          location.replace(`../homework/index.html?from=${listFrom}`);
         }, 600);
       } catch (e) {
         console.error('[homeworkDetail] doSubmitRead 异常:', e);
@@ -308,15 +310,7 @@
     async function goBack() {
       // 阅读模式：先报当前题用时
       await reportCurrentQTime();
-
-      try {
-        if (wv && typeof wv.canGoBack === 'function' && wv.canGoBack()) {
-          wv.goBack();
-          return;
-        }
-      } catch {}
-      if (history.length > 1) history.back();
-      else location.href = '../homework/index.html?from=detail';
+      location.replace(`../homework/index.html?from=${listFrom}`);
     }
 
     document.getElementById('backBtn').addEventListener('click', goBack);

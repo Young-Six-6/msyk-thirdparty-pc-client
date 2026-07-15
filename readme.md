@@ -3,10 +3,13 @@
 旨在填补美师优课没官方pc客户端的空缺（尽管有web端）  
 
 ## Install
-无需安装，解压可用
+参见Release  
+
 ## Features
-逐步完善ing，目前主要集中在查看作业和提交作业（可能）上
-## Pic
+现已支持提交作业，查看作业  
+可以在开发者模式下自定义作答时间  
+
+## Pic  
 <img src="./pics/login.png" width = "300" height = "200" alt="login" />
 <img src="./pics/home.png" width = "300" height = "200" alt="homepage" />
 <img src="./pics/homeworklist.png" width = "300" height = "200" alt="homeworklist" />
@@ -35,4 +38,7 @@
 使用问题及时提出
 
 ## About
-兴趣开发，为了尽快落实可用UI并没美化，直接使用ai生成，后续逐步调整
+兴趣开发，为了尽快落实可用UI并没美化，直接使用ai生成，后续逐步调整  
+
+## 鸣谢  
+感谢 `Misaka16407/msyk-tools` 仓库，提供了api相关参考

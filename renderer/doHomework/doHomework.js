@@ -128,8 +128,8 @@ function toast(msg) {
 }
 
 $('#backBtn')?.addEventListener('click', () => {
-	if (history.length > 1) history.back();
-	else location.href = '../homework/index.html';
+	const from = qs().from === 'me' ? 'me' : 'home';
+	location.replace('../homework/index.html?from=' + from);
 });
 
 const ctx = {
@@ -234,19 +234,22 @@ function initDebugAnswerTimeControls() {
 	const panel = $('#debugAnswerTimePanel');
 	const enabled = $('#debugAnswerTimeEnabled');
 	const input = $('#debugAnswerTimeInput');
+	const fillCorrect = $('#debugFillCorrectBtn');
 
-	if (!panel || !enabled || !input) return;
+	if (!panel || !enabled || !input || !fillCorrect) return;
 
 	if (!ctx.debugModeEnabled) {
 		panel.style.display = 'none';
 		ctx.customTimeEnabled = false;
 		enabled.checked = false;
 		input.disabled = true;
+		fillCorrect.disabled = true;
 		updateTimerDisplay();
 		return;
 	}
 
 	panel.style.display = 'inline-flex';
+	fillCorrect.disabled = false;
 
 	let storedEnabled = false;
 	let storedValue = '';
@@ -297,6 +300,11 @@ function initDebugAnswerTimeControls() {
 		});
 	}
 
+	if (!fillCorrect.__debugFillCorrectBound) {
+		fillCorrect.__debugFillCorrectBound = true;
+		fillCorrect.addEventListener('click', fillCorrectAnswers);
+	}
+
 	updateTimerDisplay();
 }
 
@@ -338,6 +346,103 @@ function isObjective(qt) {
 
 function isImageType(qt) {
 	return qt === QT.ZHUGUAN || qt === QT.GAICUO;
+}
+
+function parseAnswerArray(value) {
+	if (Array.isArray(value)) return value.map(v => String(v ?? ''));
+	if (value === null || value === undefined) return [];
+
+	const text = String(value).trim();
+	if (!text) return [];
+	try {
+		const parsed = JSON.parse(text);
+		if (Array.isArray(parsed)) return parsed.map(v => String(v ?? ''));
+	} catch {}
+	return [text];
+}
+
+function decodeChoiceAnswer(value, multiple) {
+	const parts = parseAnswerArray(value);
+	const raw = parts.join('');
+	if (multiple && isBitmap(raw)) {
+		let letters = '';
+		for (let i = 0; i < raw.length && i < 10; i++) {
+			if (raw[i] === '1') letters += String.fromCharCode(65 + i);
+		}
+		return letters;
+	}
+	return (raw.toUpperCase().match(/[A-J]/g) || []).join('');
+}
+
+function normalizeJudgmentAnswer(value) {
+	const raw = parseAnswerArray(value)[0] || '';
+	const text = String(raw).trim().toLowerCase();
+	if (['true', '1', '对', '正确'].includes(text)) return '对';
+	if (['false', '0', '错', '错误'].includes(text)) return '错';
+	return raw;
+}
+
+function getCorrectAnswerValue(question, questionType) {
+	const answer = question?.answer ?? question?.correctAnswer ?? question?.standardAnswer ?? '';
+	if (questionType === QT.DANXUAN) return decodeChoiceAnswer(answer, false).slice(0, 1);
+	if (questionType === QT.DUOXUAN) return decodeChoiceAnswer(answer, true);
+	if (questionType === QT.TIANKONG) {
+		const blanks = Array.isArray(question?.blankList) && question.blankList.length
+			? question.blankList.map(v => String(v ?? ''))
+			: parseAnswerArray(answer);
+		return blanks.length ? JSON.stringify(blanks) : '';
+	}
+	if (questionType === QT.PANDUAN) return normalizeJudgmentAnswer(answer);
+	return '';
+}
+
+async function fillCorrectAnswers() {
+	if (!ctx.debugModeEnabled || !isDebugModeEnabled()) return;
+
+	const button = $('#debugFillCorrectBtn');
+	if (!button || button.disabled) return;
+	button.disabled = true;
+	button.textContent = '获取中...';
+
+	try {
+		const response = await window.electronAPI.getCorrectAnswers({
+			homeworkId: ctx.homeworkId,
+			modifyNum: ctx.modifyNum,
+			unitId: ctx.unitId,
+		});
+		const answerCards = response?.data?.homeworkCardList;
+		if (!response || response.code !== 200 || !Array.isArray(answerCards)) {
+			throw new Error(response?.msg || '未获取到标准答案');
+		}
+
+		const bySerial = new Map();
+		const byOrder = new Map();
+		answerCards.forEach((question, index) => {
+			const fields = cardFields(question, index);
+			bySerial.set(String(fields.serialNumber), question);
+			byOrder.set(String(fields.orderNum), question);
+		});
+
+		let filled = 0;
+		getCards().forEach((question, index) => {
+			const fields = cardFields(question, index);
+			if (!isObjective(fields.questionType)) return;
+			const answerQuestion = bySerial.get(String(fields.serialNumber)) || byOrder.get(String(fields.orderNum));
+			if (!answerQuestion) return;
+			const value = getCorrectAnswerValue(answerQuestion, fields.questionType);
+			if (!value) return;
+			setAnswer(fields.serialNumber, value);
+			filled++;
+		});
+
+		renderQuestions();
+		toast(filled ? `已填入 ${filled} 道客观题，尚未保存` : '没有可自动填入的客观题');
+	} catch (error) {
+		alert('获取正确答案失败: ' + (error?.message || String(error)));
+	} finally {
+		button.disabled = false;
+		button.textContent = '一键正确';
+	}
 }
 
 function navigateTo(i) {
@@ -463,12 +568,11 @@ function renderObjInput(q, f) {
 		}).join('') + '</div>';
 	}
 	if (qt === QT.TIANKONG) {
-		let dv = existing;
-		try {
-			const p = JSON.parse(existing);
-			if (Array.isArray(p) && p.length > 0) dv = String(p[0]);
-		} catch {}
-		return '<div class="tiankongRow" data-sn="' + sn + '"><input type="text" class="tkInput" placeholder="请输入答案" value="' + esc(dv) + '" data-sn="' + sn + '"></div>';
+		const values = parseAnswerArray(existing);
+		if (!values.length) values.push('');
+		return '<div class="tiankongRow" data-sn="' + sn + '">' + values.map((value, index) =>
+			'<input type="text" class="tkInput" placeholder="第 ' + (index + 1) + ' 空" value="' + esc(value) + '" data-sn="' + sn + '" data-blank-index="' + index + '">'
+		).join('') + '</div>';
 	}
 	if (qt === QT.PANDUAN) return '<div class="optGroup" data-sn="' + sn + '"><label class="optLabel"><input type="radio" name="q_' + sn + '" value="对"' + (existing === '对' || existing === 'true' ? ' checked' : '') + '><span class="optBadge">✓</span></label><label class="optLabel"><input type="radio" name="q_' + sn + '" value="错"' + (existing === '错' || existing === 'false' ? ' checked' : '') + '><span class="optBadge">✗</span></label></div>';
 	return '';
@@ -532,7 +636,9 @@ function renderQuestions() {
 		refreshDirtyMark(g.dataset.sn);
 	}));
 	list.querySelectorAll('.tkInput').forEach(inp => inp.addEventListener('input', () => {
-		setAnswer(inp.dataset.sn, inp.value);
+		const row = inp.closest('.tiankongRow');
+		const values = Array.from(row.querySelectorAll('.tkInput')).map(item => item.value);
+		setAnswer(inp.dataset.sn, values.length > 1 ? JSON.stringify(values) : values[0]);
 		refreshDirtyMark(inp.dataset.sn);
 	}));
 	const ac = list.querySelector('.qCard.active');
@@ -777,7 +883,8 @@ async function doSubmit() {
 	}
 
 	toast('提交成功');
-	setTimeout(() => location.href = '../homework/index.html', 600);
+	const from = qs().from === 'me' ? 'me' : 'home';
+	setTimeout(() => location.replace('../homework/index.html?from=' + from), 600);
 }
 
 

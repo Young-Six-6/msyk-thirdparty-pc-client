@@ -20,6 +20,9 @@ function setDebugMode(enabled) {
   return on;
 }
 
+// 主进程也保留一份调试状态，用于保护仅调试模式开放的 IPC。
+ipcRenderer.invoke('debug:set', getDebugMode()).catch(() => {});
+
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // ===== auth/session =====
@@ -36,10 +39,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   hwList: (payload) => ipcRenderer.invoke('hw:list', payload),
   hwCardPreviewUrl: (payload) => ipcRenderer.invoke('hw:cardPreviewUrl', payload),
   hwStatus: (payload) => ipcRenderer.invoke('hw:status', payload),
+  hwPptInfo: (payload) => ipcRenderer.invoke('hw:pptInfo', payload),
 
   // ===== do homework (API flow) =====
   checkHomeworkEndTime: (payload) => ipcRenderer.invoke('hw:checkHomeworkEndTime', payload),
   getHomeworkCardInfo: (payload) => ipcRenderer.invoke('hw:getHomeworkCardInfo', payload),
+  getCorrectAnswers: (payload) => ipcRenderer.invoke('hw:getCorrectAnswers', payload),
   getHomeworkTime: (payload) => ipcRenderer.invoke('hw:getHomeworkTime', payload),
 
   saveBitmap: (payload) => ipcRenderer.invoke('hw:saveBitmap', payload),
@@ -58,8 +63,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   submitReadCountTime: (payload) => ipcRenderer.invoke('hw:submitReadCountTime', payload),
 
   // ===== debug mode =====
-  debugGet: () => Promise.resolve(getDebugMode()),
-  debugSet: (enabled) => Promise.resolve(setDebugMode(enabled)),
+  debugGet: async () => {
+    const enabled = !!(await ipcRenderer.invoke('debug:get'));
+    setDebugMode(enabled);
+    return enabled;
+  },
+  debugSet: async (enabled) => {
+    const on = setDebugMode(enabled);
+    return await ipcRenderer.invoke('debug:set', on);
+  },
 });
 
 

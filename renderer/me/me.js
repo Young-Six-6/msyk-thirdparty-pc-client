@@ -37,26 +37,25 @@ const $ = (s) => document.querySelector(s);
 })();
 
 $('#backBtn')?.addEventListener('click', () => {
-  if (history.length > 1) history.back();
-  else location.href = '../home/index.html';
+  location.replace('../home/index.html');
 });
 
 $('#logout')?.addEventListener('click', async () => {
   await window.electronAPI.apiLogout();
-  location.href = '../login/index.html';
+  location.replace('../login/index.html');
 });
 
 document.querySelectorAll('.tabbar .tab').forEach(btn => {
   btn.addEventListener('click', () => {
     const go = btn.dataset.go;
-    if (go === 'home') location.href = '../home/index.html';
-    if (go === 'homework') location.href = '../homework/index.html?from=me';
-    if (go === 'me') location.href = './index.html';
+    if (go === 'home') location.replace('../home/index.html');
+    if (go === 'homework') location.replace('../homework/index.html?from=me');
+    if (go === 'me') location.replace('./index.html');
   });
 });
 $('#settingEntry')?.addEventListener('click', () => {
-  location.href = '../settings/index.html?from=me';
+  location.replace('../settings/index.html?from=me');
 });
 $('#aboutEntry')?.addEventListener('click', () => {
-  location.href = '../about/index.html?from=me';
+  location.replace('../about/index.html?from=me');
 });

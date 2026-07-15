@@ -17,6 +17,13 @@ function decryptSavedPassword(encryptedPassword) {
 }
 
 function registerApiIpc(ipcMain, apiClient) {
+  ipcMain.handle('debug:get', () => !!readStore().debugMode);
+  ipcMain.handle('debug:set', (event, enabled) => {
+    const debugMode = !!enabled;
+    writeStore({ debugMode });
+    return debugMode;
+  });
+
   ipcMain.handle('api:login', async (event, { userName, password, macAddress }) => {
     try {
       const session = await apiClient.padLogin({
@@ -123,6 +130,18 @@ function registerApiIpc(ipcMain, apiClient) {
     }
   });
 
+  ipcMain.handle('hw:pptInfo', async (event, payload = {}) => {
+    try {
+      const { pptResourceId, resSource = 1 } = payload;
+      const { status, data } = await apiClient.homeworkPPTInfo({ pptResourceId, resSource });
+
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
   ipcMain.handle('hw:cardPreviewUrl', async (event, payload = {}) => {
     try {
       const { homeworkId, modifyNum = 0, isShowAnswer = 1, endHomeworkModel = 1 } = payload;
@@ -160,6 +179,23 @@ function registerApiIpc(ipcMain, apiClient) {
         unitId,
       });
       if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:getCorrectAnswers', async (event, payload = {}) => {
+    try {
+      if (!readStore().debugMode) return { code: 403, msg: '仅调试模式可用' };
+
+      const { homeworkId, modifyNum = 0, unitId } = payload;
+      const { status, data } = await apiClient.getHomeworkCardCorrectAnswers({
+        homeworkId,
+        modifyNum,
+        unitId,
+      });
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}` };
       return { code: 200, data };
     } catch (e) {
       return { code: 500, msg: e?.message || String(e) };

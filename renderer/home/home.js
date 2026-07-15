@@ -29,25 +29,24 @@ const $ = (s) => document.querySelector(s);
 
 $('#logout').addEventListener('click', async () => {
   await window.electronAPI.apiLogout();
-  location.href = '../login/index.html';
+  location.replace('../login/index.html');
 });
 
 // 进入作业
 $('#homeworkBtn').addEventListener('click', () => {
-  // 用 history 方案：让返回可用
-  location.href = '../homework/index.html?from=home';
+  location.replace('../homework/index.html?from=home');
 });
 // 进入我的
 $('#meBtn')?.addEventListener('click', () => {
-  location.href = '../me/index.html?from=home';
+  location.replace('../me/index.html?from=home');
 });
 
 // Tabbar
 document.querySelectorAll('.tabbar .tab').forEach(btn => {
   btn.addEventListener('click', () => {
     const go = btn.dataset.go;
-    if (go === 'home') location.href = './index.html';
-    if (go === 'homework') location.href = '../homework/index.html?from=home';
-    if (go === 'me') location.href = '../me/index.html?from=home';
+    if (go === 'home') location.replace('./index.html');
+    if (go === 'homework') location.replace('../homework/index.html?from=home');
+    if (go === 'me') location.replace('../me/index.html?from=home');
   });
 });

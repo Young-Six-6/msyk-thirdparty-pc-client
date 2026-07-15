@@ -254,7 +254,7 @@ body{
   font-weight:600;
 }
 
-.tiankongRow{ display:flex; gap:8px; }
+.tiankongRow{ display:flex; flex-wrap:wrap; gap:8px; }
 .tkInput{
   flex:1;
   min-width:120px;
@@ -449,4 +449,12 @@ body{
 .debugAnswerTimeInput:focus{
   outline:none;
   border-color:var(--primary);
+}
+
+.debugFillCorrectBtn{
+  height:24px;
+  padding:0 9px;
+  font-size:12px;
+  line-height:22px;
+  white-space:nowrap;
 }

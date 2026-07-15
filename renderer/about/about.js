@@ -15,22 +15,8 @@ const $ = (s) => document.querySelector(s);
 })();
 
 $("#backBtn")?.addEventListener("click", () => {
-
-    if (history.length > 1) {
-        history.back();
-    } else {
-        location.href = "../me/index.html";
-    }
-
+    location.replace("../me/index.html");
 });
-
-//$("#logout")?.addEventListener("click", async () => {
-//
-//    await window.electronAPI.apiLogout();
-//
-//    location.href = "../login/index.html";
-//
-//});
 
 $("#checkUpdate")?.addEventListener("click", () => {
 

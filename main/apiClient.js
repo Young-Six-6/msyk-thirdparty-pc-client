@@ -74,6 +74,7 @@ function decodeServerSignToSessionSign(serverSignB64, publicKey64) {
 
 async function requestForm({ url, method = 'POST', form = {}, headers = {} }) {
   const body = encodeForm(form);
+  const canHaveBody = !['GET', 'HEAD'].includes(String(method).toUpperCase());
 
   // 尝试使用 Electron net
   let electronNet = null;
@@ -86,7 +87,7 @@ async function requestForm({ url, method = 'POST', form = {}, headers = {} }) {
     return await new Promise((resolve, reject) => {
       const req = electronNet.request({ method, url });
 
-      req.setHeader('content-type', 'application/x-www-form-urlencoded');
+      if (canHaveBody) req.setHeader('content-type', 'application/x-www-form-urlencoded');
       for (const [k, v] of Object.entries(headers || {})) {
         req.setHeader(k, v);
       }
@@ -105,20 +106,22 @@ async function requestForm({ url, method = 'POST', form = {}, headers = {} }) {
       });
 
       req.on('error', reject);
-      req.write(body);
+      if (canHaveBody && body) req.write(body);
       req.end();
     });
   }
 
   // fallback：非 Electron 环境才走 fetch
-  const res = await fetch(url, {
+  const requestOptions = {
     method,
     headers: {
-      'content-type': 'application/x-www-form-urlencoded',
+      ...(canHaveBody ? { 'content-type': 'application/x-www-form-urlencoded' } : {}),
       ...headers,
     },
-    body,
-  });
+  };
+  if (canHaveBody) requestOptions.body = body;
+
+  const res = await fetch(url, requestOptions);
 
   const raw = await res.text();
   let data = raw;
@@ -332,6 +335,18 @@ class ApiClient {
     return await this.postSigned('/ws/common/homework/homeworkStatus', params);
   }
 
+  // PPT 阅读材料：服务端已将 PPT 转为逐页图片。
+  async homeworkPPTInfo({ pptResourceId, resSource = 1 } = {}) {
+    if (!pptResourceId) throw new Error('homeworkPPTInfo 缺少 pptResourceId');
+
+    const params = {
+      pptResourceId: String(pptResourceId),
+      resSource: String(resSource ?? 1),
+    };
+
+    return await this.postSigned('/ws/student/homework/studentHomework/homeworkPPTInfo', params);
+  }
+
   // 新作业做作业：截止校验
   async checkHomeworkEndTime({ homeworkId, unitId } = {}) {
     const uid = unitId || this.session.unitId;
@@ -358,6 +373,26 @@ class ApiClient {
     };
 
     return await this.postSigned('/ws/teacher/homeworkCard/getHomeworkCardInfo', params);
+  }
+
+  // 调试工具：按原版测试流程读取题卡标准答案，不包含保存或提交操作。
+  async getHomeworkCardCorrectAnswers({ homeworkId, modifyNum = 0, unitId } = {}) {
+    const uid = unitId || this.session.unitId;
+    if (!homeworkId) throw new Error('getHomeworkCardCorrectAnswers 缺少 homeworkId');
+    if (!uid) throw new Error('getHomeworkCardCorrectAnswers 缺少 unitId');
+
+    const query = encodeForm({
+      homeworkId: String(homeworkId),
+      studentId: '',
+      modifyNum: String(modifyNum ?? 0),
+      unitId: String(uid),
+    });
+
+    return await requestForm({
+      url: `${this.baseUrl}/ws/teacher/homeworkCard/getHomeworkCardInfo?${query}`,
+      method: 'GET',
+      headers: { 'user-agent': this.userAgent, 'accept-encoding': 'gzip' },
+    });
   }
 
   // 计时/时长
