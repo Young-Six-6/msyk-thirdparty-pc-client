@@ -1,0 +1,693 @@
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body[data-page] {
+  min-width: 0;
+}
+
+body[data-page] button,
+body[data-page] input,
+body[data-page] select {
+  font: inherit;
+}
+
+@media (pointer: coarse) {
+  body[data-page] button,
+  body[data-page] input,
+  body[data-page] select,
+  body[data-page] .row.clickable {
+    touch-action: manipulation;
+  }
+}
+
+/* Login */
+@media (max-width: 1024px) {
+  body[data-page],
+  body[data-page] * {
+    box-sizing: border-box;
+  }
+
+  body[data-page="login"] {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: auto;
+    overflow: auto;
+    padding: calc(18px + var(--safe-top)) calc(18px + var(--safe-right))
+      calc(18px + var(--safe-bottom)) calc(18px + var(--safe-left));
+  }
+
+  body[data-page="login"] .box {
+    width: min(100%, 420px);
+  }
+
+  body[data-page="login"] .box h1 {
+    margin: 0 0 18px;
+    text-align: center;
+    font-size: 26px;
+  }
+
+  body[data-page="login"] .card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body[data-page="login"] input,
+  body[data-page="login"] button {
+    width: 100%;
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  body[data-page="login"] .remember-label input {
+    width: 18px;
+    min-height: 18px;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+  body[data-page="login"] {
+    align-items: flex-start;
+    padding-top: calc(12px + var(--safe-top));
+    padding-bottom: calc(12px + var(--safe-bottom));
+  }
+
+  body[data-page="login"] .box {
+    width: min(100%, 620px);
+    display: grid;
+    grid-template-columns: minmax(120px, 170px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  body[data-page="login"] .box h1 {
+    margin-top: 18px;
+    font-size: 24px;
+  }
+
+  body[data-page="login"] .card {
+    padding: 14px;
+    gap: 7px;
+  }
+
+  body[data-page="login"] input,
+  body[data-page="login"] button {
+    min-height: 42px;
+  }
+}
+
+/* Home and Me */
+@media (max-width: 1024px) {
+  body[data-page="home"],
+  body[data-page="me"] {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  body[data-page="home"] .app-top,
+  body[data-page="me"] .app-top {
+    min-height: calc(60px + var(--safe-top));
+    padding: calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) 10px
+      calc(12px + var(--safe-left));
+  }
+
+  body[data-page="home"] .user,
+  body[data-page="home"] .info,
+  body[data-page="me"] .title {
+    min-width: 0;
+  }
+
+  body[data-page="home"] .name,
+  body[data-page="home"] .sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body[data-page="home"] .btn,
+  body[data-page="me"] .btn,
+  body[data-page="home"] .tab,
+  body[data-page="me"] .tab {
+    min-height: 44px;
+  }
+
+  body[data-page="home"] #statsCard {
+    width: auto;
+    margin: 12px 12px 0;
+  }
+
+  body[data-page="home"] .app-body,
+  body[data-page="me"] .app-body {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 12px calc(12px + var(--safe-right))
+      calc(76px + var(--safe-bottom)) calc(12px + var(--safe-left));
+  }
+
+  body[data-page="home"] .tabbar,
+  body[data-page="me"] .tabbar {
+    z-index: 20;
+    padding: 8px calc(10px + var(--safe-right)) calc(8px + var(--safe-bottom))
+      calc(10px + var(--safe-left));
+  }
+
+  body[data-page="me"] .row {
+    min-height: 48px;
+    align-items: center;
+  }
+
+  body[data-page="me"] .v {
+    min-width: 0;
+    text-align: right;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  body[data-page="home"] .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  body[data-page="home"] #statsCard {
+    max-width: 876px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  body[data-page="home"] .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+  }
+
+  body[data-page="home"] .stats {
+    gap: 8px;
+  }
+
+  body[data-page="home"] .stat,
+  body[data-page="home"] .card,
+  body[data-page="me"] .card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  body[data-page="home"] .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  body[data-page="home"] .tile {
+    min-height: 82px;
+    border-radius: 8px;
+  }
+
+  body[data-page="me"] .k {
+    flex: 0 0 76px;
+    width: auto;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+  body[data-page="home"] .app-top,
+  body[data-page="me"] .app-top {
+    min-height: calc(52px + var(--safe-top));
+    padding-top: calc(6px + var(--safe-top));
+    padding-bottom: 6px;
+  }
+
+  body[data-page="home"] .app-body,
+  body[data-page="me"] .app-body {
+    padding-top: 8px;
+  }
+
+  body[data-page="home"] .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Homework list */
+@media (max-width: 1024px) {
+  body[data-page="homework"] {
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  body[data-page="homework"] .topbar {
+    flex: 0 0 auto;
+    padding: calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) 10px
+      calc(12px + var(--safe-left));
+  }
+
+  body[data-page="homework"] .topbar .left,
+  body[data-page="homework"] .topbar .right {
+    min-width: 0;
+  }
+
+  body[data-page="homework"] input {
+    width: min(38vw, 340px);
+    min-width: 0;
+    min-height: 42px;
+    font-size: 16px;
+  }
+
+  body[data-page="homework"] button,
+  body[data-page="homework"] select {
+    min-height: 42px;
+  }
+
+  body[data-page="homework"] .tabs {
+    flex: 0 0 auto;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 10px 12px;
+  }
+
+  body[data-page="homework"] .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-page="homework"] .tabs .tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  body[data-page="homework"] .filters {
+    flex: 0 0 auto;
+    padding: 0 12px 10px;
+    gap: 10px;
+  }
+
+  body[data-page="homework"] .pill-row {
+    flex: 1 1 420px;
+  }
+
+  body[data-page="homework"] .selects {
+    flex: 0 1 auto;
+  }
+
+  body[data-page="homework"] .list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 calc(12px + var(--safe-right)) 12px calc(12px + var(--safe-left));
+  }
+
+  body[data-page="homework"] .card {
+    border-radius: 8px;
+  }
+
+  body[data-page="homework"] .card .r {
+    flex: 0 0 auto;
+  }
+
+  body[data-page="homework"] .pager {
+    flex: 0 0 auto;
+    position: static;
+    padding: 8px calc(12px + var(--safe-right)) calc(8px + var(--safe-bottom))
+      calc(12px + var(--safe-left));
+  }
+}
+
+@media (max-width: 600px) {
+  body[data-page="homework"] .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  body[data-page="homework"] .topbar .left {
+    flex: 1 1 auto;
+  }
+
+  body[data-page="homework"] .topbar .right {
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  body[data-page="homework"] input {
+    width: 100%;
+  }
+
+  body[data-page="homework"] .pill-row {
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: repeat(8, minmax(34px, 1fr));
+    gap: 5px;
+  }
+
+  body[data-page="homework"] .pill {
+    min-width: 0;
+    padding: 5px;
+  }
+
+  body[data-page="homework"] .selects {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  body[data-page="homework"] select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body[data-page="homework"] .card {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  body[data-page="homework"] .card .r {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  body[data-page="homework"] .card .r .doBtn {
+    min-width: 104px;
+  }
+}
+
+/* Me, Settings, About */
+@media (max-width: 1024px) {
+  body[data-page="settings"],
+  body[data-page="about"] {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  body[data-page="settings"] .app-top,
+  body[data-page="about"] .app-top {
+    min-height: calc(56px + var(--safe-top));
+    padding: calc(10px + var(--safe-top)) calc(14px + var(--safe-right)) 10px
+      calc(14px + var(--safe-left));
+  }
+
+  body[data-page="settings"] .btn,
+  body[data-page="about"] .back-btn,
+  body[data-page="about"] .menu-item {
+    min-height: 44px;
+  }
+
+  body[data-page="settings"] .app-body,
+  body[data-page="about"] .app-body {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 14px calc(14px + var(--safe-right)) calc(20px + var(--safe-bottom))
+      calc(14px + var(--safe-left));
+  }
+
+  body[data-page="settings"] .row,
+  body[data-page="about"] .row {
+    min-height: 50px;
+    align-items: center;
+  }
+
+  body[data-page="settings"] .v,
+  body[data-page="about"] .v {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+}
+
+@media (max-width: 480px) {
+  body[data-page="settings"] .card,
+  body[data-page="about"] .card {
+    padding: 16px;
+    border-radius: 8px;
+  }
+
+  body[data-page="settings"] .k {
+    flex: 0 0 84px;
+    width: auto;
+  }
+
+  body[data-page="about"] .app-logo img {
+    width: 72px;
+    height: 72px;
+  }
+
+  body[data-page="about"] .app-name {
+    font-size: 22px;
+  }
+
+  body[data-page="about"] .menu {
+    padding: 0;
+  }
+}
+
+/* Homework detail */
+@media (max-width: 1024px) {
+  body[data-page="homework-detail"] {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  body[data-page="homework-detail"] .topbar {
+    height: auto;
+    min-height: calc(52px + var(--safe-top));
+    padding: calc(6px + var(--safe-top)) calc(10px + var(--safe-right)) 6px
+      calc(10px + var(--safe-left));
+  }
+
+  body[data-page="homework-detail"] .title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body[data-page="homework-detail"] .back,
+  body[data-page="homework-detail"] .submitBtn,
+  body[data-page="homework-detail"] .navBtn {
+    min-height: 40px;
+  }
+
+  body[data-page="homework-detail"] .qNav {
+    height: 48px;
+    padding: 4px calc(10px + var(--safe-right)) 4px calc(10px + var(--safe-left));
+  }
+
+  body[data-page="homework-detail"] #wv {
+    min-height: 0;
+  }
+
+  body[data-page="homework-detail"] .toast {
+    bottom: calc(14px + var(--safe-bottom));
+    max-width: calc(100vw - 24px - var(--safe-left) - var(--safe-right));
+  }
+}
+
+@media (max-width: 480px) {
+  body[data-page="homework-detail"] .topbar {
+    gap: 7px;
+  }
+
+  body[data-page="homework-detail"] .back {
+    width: 42px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  body[data-page="homework-detail"] .back::before {
+    content: "\2190";
+    font-size: 20px;
+  }
+
+  body[data-page="homework-detail"] .timer {
+    margin-right: 0;
+    font-size: 12px;
+  }
+}
+
+/* Do homework */
+@media (max-width: 1024px) {
+  html:has(body[data-page="do-homework"]),
+  body[data-page="do-homework"] {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  body[data-page="do-homework"] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body[data-page="do-homework"] .topbar {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: calc(56px + var(--safe-top));
+    padding: calc(8px + var(--safe-top)) calc(10px + var(--safe-right)) 8px
+      calc(10px + var(--safe-left));
+    gap: 8px;
+  }
+
+  body[data-page="do-homework"] .topbar > .btn,
+  body[data-page="do-homework"] .qNav .btn,
+  body[data-page="do-homework"] .actions .btn,
+  body[data-page="do-homework"] .qAnsRow .btn {
+    min-height: 40px;
+  }
+
+  body[data-page="do-homework"] .main {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  body[data-page="do-homework"] .pane {
+    border-radius: 8px;
+  }
+
+  body[data-page="do-homework"] .paneTitle {
+    min-height: 34px;
+    height: auto;
+  }
+
+  body[data-page="do-homework"] .materialTitle {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  body[data-page="do-homework"] .materialNav .btn {
+    min-height: 32px;
+  }
+
+  body[data-page="do-homework"] .qNav {
+    padding: 6px 8px;
+    gap: 7px;
+  }
+
+  body[data-page="do-homework"] .qList {
+    padding: 8px;
+    overscroll-behavior: contain;
+  }
+
+  body[data-page="do-homework"] .qCard {
+    border-radius: 8px;
+  }
+
+  body[data-page="do-homework"] .qTop {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  body[data-page="do-homework"] .qMeta {
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="do-homework"] .optLabel {
+    min-height: 42px;
+  }
+
+  body[data-page="do-homework"] .tkInput {
+    min-height: 42px;
+    font-size: 16px;
+  }
+
+  body[data-page="do-homework"] .actions {
+    padding: 8px;
+  }
+
+  body[data-page="do-homework"] .toast {
+    bottom: calc(14px + var(--safe-bottom));
+    max-width: calc(100vw - 24px - var(--safe-left) - var(--safe-right));
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) and (orientation: portrait) {
+  body[data-page="do-homework"] .main {
+    flex-direction: column;
+  }
+
+  body[data-page="do-homework"] .pane.left {
+    flex: 0 0 46%;
+  }
+
+  body[data-page="do-homework"] .pane.right {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 640px) and (orientation: portrait) {
+  body[data-page="do-homework"] .main {
+    flex-direction: column;
+  }
+
+  body[data-page="do-homework"] .pane.left {
+    flex: 0 0 38%;
+  }
+
+  body[data-page="do-homework"] .pane.right {
+    flex: 1 1 auto;
+  }
+
+  body[data-page="do-homework"] .sub {
+    gap: 5px 8px;
+  }
+
+  body[data-page="do-homework"] .debugAnswerTimePanel {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  body[data-page="do-homework"] .qNav .btn {
+    padding: 0 8px;
+  }
+
+  body[data-page="do-homework"] .mediaAnswerList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-page="do-homework"] .actions .btn {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+  body[data-page="do-homework"] .topbar {
+    min-height: calc(48px + var(--safe-top));
+    padding-top: calc(5px + var(--safe-top));
+    padding-bottom: 5px;
+  }
+
+  body[data-page="do-homework"] .main {
+    flex-direction: row;
+    padding: 6px;
+    gap: 6px;
+  }
+
+  body[data-page="do-homework"] .pane.left,
+  body[data-page="do-homework"] .pane.right {
+    flex: 1 1 0;
+  }
+
+  body[data-page="do-homework"] .paneTitle {
+    min-height: 30px;
+  }
+
+  body[data-page="do-homework"] .qNav {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+}
