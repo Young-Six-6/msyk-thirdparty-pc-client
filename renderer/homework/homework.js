@@ -9,6 +9,9 @@ document.querySelector('#backBtn')?.addEventListener('click', () => {
 
 const $ = (s) => document.querySelector(s);
 
+const TYPE_FILTER_FETCH_SIZE = 100;
+const TYPE_FILTER_MAX_PAGES = 1000;
+let loadRequestId = 0;
 
 const state = {
   statu: 1,
@@ -18,6 +21,7 @@ const state = {
   pageIndex: 1,
   pageSize: 12,
   pages: 1,
+  subjects: new Map(),
 };
 
 function setLoading(on) {
@@ -42,6 +46,80 @@ function formatTime(ts) {
   const d = new Date(n);
   const pad = (x) => String(x).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function subjectLabel(name) {
+  const value = String(name || '').trim();
+  const known = {
+    '语文': '语',
+    '数学': '数',
+    '英语': '英',
+    '物理': '物',
+    '化学': '化',
+    '生物': '生',
+    '历史': '史',
+    '地理': '地',
+    '政治': '政',
+    '道德与法治': '政',
+  };
+  return known[value] || value.slice(0, 2) || '科目';
+}
+
+function renderSubjectFilters() {
+  const container = $('#subjects');
+  if (!container) return;
+
+  const subjectButtons = Array.from(state.subjects.values()).map((subject) => {
+    const hint = subject.teacherName ? `${subject.name} - ${subject.teacherName}` : subject.name;
+    const active = state.subjectCode === subject.code ? ' active' : '';
+    return `<button class="pill${active}" data-subject="${escapeHtml(subject.code)}" title="${escapeHtml(hint)}">${escapeHtml(subjectLabel(subject.name || subject.code))}</button>`;
+  });
+  const allActive = state.subjectCode ? '' : ' active';
+  container.innerHTML = [
+    `<button class="pill${allActive}" data-subject="">全</button>`,
+    ...subjectButtons,
+  ].join('');
+}
+
+function mergeSubjects(subjects) {
+  (subjects || []).forEach((subject) => {
+    const code = String(subject?.code || subject?.subjectCode || '').trim();
+    if (!code) return;
+
+    const previous = state.subjects.get(code) || {};
+    const name = String(subject?.name || subject?.subjectName || subject?.subject || previous.name || code).trim();
+    const teacherName = String(subject?.teacherName || previous.teacherName || '').trim();
+    state.subjects.set(code, { code, name, teacherName });
+  });
+  renderSubjectFilters();
+}
+
+async function loadSubjects() {
+  const container = $('#subjects');
+  if (!container || typeof window.msykAPI?.hwSubjects !== 'function') return;
+
+  try {
+    const response = await window.msykAPI.hwSubjects();
+    const businessCode = String(response?.data?.code ?? '');
+    const subjects = response?.data?.studentSubjectList;
+
+    if (!response || response.code !== 200 || (businessCode && businessCode !== '10000')) {
+      throw new Error(response?.data?.message || response?.msg || '获取科目失败');
+    }
+    if (!Array.isArray(subjects)) return;
+
+    const items = subjects
+      .map((subject) => ({
+        code: String(subject?.code || '').trim(),
+        name: String(subject?.name || '').trim(),
+        teacherName: String(subject?.teacherName || '').trim(),
+      }))
+      .filter((subject) => subject.code && subject.name);
+
+    mergeSubjects(items);
+  } catch (error) {
+    console.warn('[homework] 科目列表加载失败，继续使用全部科目:', error);
+  }
 }
 
 function toWpStatic(u) {
@@ -84,7 +162,7 @@ async function resolveReadMaterials(resList) {
       continue;
     }
 
-    const response = await window.electronAPI.hwPptInfo({
+    const response = await window.msykAPI.hwPptInfo({
       pptResourceId,
       resSource: resource?.resSource ?? 1,
     });
@@ -109,9 +187,46 @@ async function resolveReadMaterials(resList) {
   return { urls, resIds, errors };
 }
 
+function getCardMaterialGroups(info) {
+  const collect = (keys) => keys.flatMap((key) => Array.isArray(info?.[key]) ? info[key] : []);
+  return {
+    questions: collect(['materialRelas', 'dtkMaterialInfoList', 'dtkMaterialList', 'materials']),
+    answers: collect(['analysistList', 'analysisList', 'dtkAnswerMaterialList', 'answerMaterialRelas', 'answerMaterials']),
+  };
+}
+
+function uniqueUrls(urls) {
+  return Array.from(new Set((urls || []).filter(Boolean)));
+}
+
+function isAnswerMaterialVisible(info, answers) {
+  if (info?.isShowAnswer !== undefined && info?.isShowAnswer !== null && info?.isShowAnswer !== '') {
+    return Number(info.isShowAnswer) === 1;
+  }
+  return Array.isArray(answers) && answers.length > 0;
+}
+
+async function isDebugModeEnabled() {
+  try {
+    if (typeof window.msykAPI?.debugGet === 'function') {
+      return !!(await window.msykAPI.debugGet());
+    }
+  } catch (error) {
+    console.warn('[homework] 读取调试模式失败:', error);
+  }
+
+  try {
+    return !!window.MSYK_DEBUG?.get?.();
+  } catch {
+    return false;
+  }
+}
+
 function renderList(data) {
   const list = $('#list');
   const items = data?.sqHomeworkDtoList || [];
+
+  mergeSubjects(items);
 
   if (!items.length) {
     list.innerHTML = `<div class="card"><div class="l">暂无作业</div></div>`;
@@ -169,11 +284,54 @@ function renderList(data) {
           return;
         }
 
-        // 其它状态走 webview 预览
-        const resp = await window.electronAPI.hwCardPreviewUrl({
+        // 已提交/待批改/已结束：答题卡、题干材料和答案材料使用同一详情页。
+        let cardInfo = null;
+        try {
+          const infoResponse = await window.msykAPI.getHomeworkCardInfo({
+            homeworkId,
+            modifyNum,
+          });
+          if (infoResponse?.code === 200 && infoResponse.data) {
+            cardInfo = infoResponse.data;
+          } else {
+            console.warn('[homework] 获取答题卡材料失败，继续打开答题卡:', infoResponse);
+          }
+        } catch (error) {
+          console.warn('[homework] 获取答题卡材料异常，继续打开答题卡:', error);
+        }
+
+        const materialGroups = getCardMaterialGroups(cardInfo);
+        const showAnswer = cardInfo ? isAnswerMaterialVisible(cardInfo, materialGroups.answers) : true;
+        let debugModeEnabled = false;
+        let debugAnswerResources = [];
+
+        if (cardInfo && !showAnswer) {
+          debugModeEnabled = await isDebugModeEnabled();
+          if (debugModeEnabled) {
+            debugAnswerResources = materialGroups.answers;
+
+            if (!debugAnswerResources.length && typeof window.msykAPI?.getCorrectAnswers === 'function') {
+              try {
+                const debugResponse = await window.msykAPI.getCorrectAnswers({
+                  homeworkId,
+                  modifyNum,
+                });
+                if (debugResponse?.code === 200 && debugResponse.data) {
+                  debugAnswerResources = getCardMaterialGroups(debugResponse.data).answers;
+                } else {
+                  console.warn('[homework] 调试答案材料获取失败:', debugResponse);
+                }
+              } catch (error) {
+                console.warn('[homework] 调试答案材料获取异常:', error);
+              }
+            }
+          }
+        }
+
+        const resp = await window.msykAPI.hwCardPreviewUrl({
           homeworkId,
           modifyNum,
-          isShowAnswer: 1,
+          isShowAnswer: showAnswer ? 1 : 0,
           endHomeworkModel: 1,
         });
 
@@ -182,13 +340,44 @@ function renderList(data) {
           return;
         }
 
-        location.replace(`../homeworkDetail/index.html?url=${encodeURIComponent(resp.data.url)}&from=${listFrom}`);
+        const detailParams = new URLSearchParams({
+          url: resp.data.url,
+          from: listFrom,
+        });
+
+        if (cardInfo) {
+          const [questionResult, answerResult, debugAnswerResult] = await Promise.all([
+            resolveReadMaterials(materialGroups.questions),
+            showAnswer ? resolveReadMaterials(materialGroups.answers) : Promise.resolve({ urls: [], errors: [] }),
+            debugModeEnabled && debugAnswerResources.length
+              ? resolveReadMaterials(debugAnswerResources)
+              : Promise.resolve({ urls: [], errors: [] }),
+          ]);
+          const questionUrls = uniqueUrls(questionResult.urls);
+          const answerUrls = uniqueUrls(answerResult.urls);
+          const debugAnswerUrls = uniqueUrls(debugAnswerResult.urls);
+
+          detailParams.set('detailModes', '1');
+          detailParams.set('questionUrls', JSON.stringify(questionUrls));
+          detailParams.set('answerUrls', JSON.stringify(answerUrls));
+          detailParams.set('answerState', showAnswer ? (answerUrls.length ? 'available' : 'empty') : 'hidden');
+
+          if (debugModeEnabled && debugAnswerUrls.length) {
+            detailParams.set('debugForceAllowed', '1');
+            detailParams.set('debugAnswerUrls', JSON.stringify(debugAnswerUrls));
+          }
+
+          [...(questionResult.errors || []), ...(answerResult.errors || []), ...(debugAnswerResult.errors || [])]
+            .forEach((error) => console.warn('[homework] 材料解析失败:', error));
+        }
+
+        location.replace(`../homeworkDetail/index.html?${detailParams.toString()}`);
         return;
       }
 
       // homeworkType=5：HTM/图片直接加载；PPT 按原版流程换取逐页图片。
       if (hwType === 5) {
-        const st = await window.electronAPI.hwStatus({ homeworkId, modifyNum });
+        const st = await window.msykAPI.hwStatus({ homeworkId, modifyNum });
         if (!st || st.code !== 200) {
           alert(st?.msg || 'homeworkStatus 失败');
           return;
@@ -210,7 +399,7 @@ function renderList(data) {
         return;
       }
 
-      const st = await window.electronAPI.hwStatus({ homeworkId, modifyNum });
+      const st = await window.msykAPI.hwStatus({ homeworkId, modifyNum });
       if (st && st.code === 200) {
         const resList = st.data?.resourceList || [];
         const urlArr = resList
@@ -226,7 +415,7 @@ function renderList(data) {
 
       // 兜底：hwCardPreviewUrl（仍然单 URL）
       {
-        const resp = await window.electronAPI.hwCardPreviewUrl({
+        const resp = await window.msykAPI.hwCardPreviewUrl({
           homeworkId,
           modifyNum,
           isShowAnswer: state.statu === 1 ? 0 : 1,
@@ -259,10 +448,66 @@ function renderPager(data) {
   $('#next').disabled = state.pageIndex >= state.pages;
 }
 
+async function requestHomeworkList(request) {
+  if (Number(request.homeworkType) === -1) {
+    return window.msykAPI.hwList(request);
+  }
+
+  const targetType = Number(request.homeworkType);
+  const fetchSize = Math.max(TYPE_FILTER_FETCH_SIZE, Number(request.pageSize) || 12);
+  const allItems = [];
+  let firstResponse = null;
+  let serverPage = 1;
+  let serverPages = 1;
+
+  do {
+    const response = await window.msykAPI.hwList({
+      ...request,
+      homeworkType: -1,
+      pageIndex: serverPage,
+      pageSize: fetchSize,
+    });
+
+    if (!response || response.code !== 200) return response;
+    if (!firstResponse) firstResponse = response;
+
+    const data = response.data || {};
+    if (data.code !== undefined && String(data.code) !== '10000') return response;
+
+    const items = Array.isArray(data.sqHomeworkDtoList) ? data.sqHomeworkDtoList : [];
+    allItems.push(...items);
+    serverPages = Math.min(
+      TYPE_FILTER_MAX_PAGES,
+      Math.max(1, Number(data.pages) || 1)
+    );
+    serverPage += 1;
+  } while (serverPage <= serverPages);
+
+  const filteredItems = allItems.filter(
+    (item) => Number(item?.homeworkType) === targetType
+  );
+  const pageSize = Math.max(1, Number(request.pageSize) || 12);
+  const pages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const pageIndex = Math.min(Math.max(1, Number(request.pageIndex) || 1), pages);
+  const start = (pageIndex - 1) * pageSize;
+
+  return {
+    ...firstResponse,
+    data: {
+      ...(firstResponse?.data || {}),
+      sqHomeworkDtoList: filteredItems.slice(start, start + pageSize),
+      homeworkNum: filteredItems.length,
+      pages,
+      pageIndex,
+    },
+  };
+}
+
 async function load() {
+  const requestId = ++loadRequestId;
   setLoading(true);
 
-  const resp = await window.electronAPI.hwList({
+  const resp = await requestHomeworkList({
     statu: state.statu,
     pageIndex: state.pageIndex,
     pageSize: state.pageSize,
@@ -270,6 +515,8 @@ async function load() {
     homeworkType: state.homeworkType,
     homeworkName: state.homeworkName,
   });
+
+  if (requestId !== loadRequestId) return;
 
   if (!resp || resp.code !== 200) {
     $('#list').innerHTML = `<div class="card"><div class="l">加载失败：${escapeHtml(
@@ -337,4 +584,5 @@ $('#next').addEventListener('click', () => {
   load();
 });
 
+loadSubjects();
 load();

@@ -23,7 +23,7 @@ function createWindow() {
   mainWindow.setMenuBarVisibility(false);
 
   const store = readStore();
-  const hasSession = store?.session?.sign;
+  const hasSession = store?.session?.sessionSign || store?.session?.sign;
 
   if (hasSession) {
     mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'home', 'index.html'));

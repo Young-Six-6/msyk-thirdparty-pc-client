@@ -11,7 +11,7 @@ async function initSavedLogin() {
     localStorage.removeItem('savedLogin');
   }
 
-  const resp = await window.electronAPI?.getSavedLogin?.();
+  const resp = await window.msykAPI?.getSavedLogin?.();
   const saved = resp?.code === 200 && resp.data ? resp.data : legacySaved;
 
   if (saved) {
@@ -38,7 +38,7 @@ $('#btn').addEventListener('click', async () => {
     return;
   }
 
-  if (!window.electronAPI?.apiLogin) {
+  if (!window.msykAPI?.apiLogin) {
     $('#tips').textContent = '应用组件加载失败，请重新安装';
     return;
   }
@@ -46,7 +46,7 @@ $('#btn').addEventListener('click', async () => {
   $('#btn').disabled = true;
   $('#btn').textContent = '登录中...';
 
-  const resp = await window.electronAPI.apiLogin({
+  const resp = await window.msykAPI.apiLogin({
     userName: username,
     password,
     macAddress: macAddressInput || undefined,
@@ -60,7 +60,7 @@ $('#btn').addEventListener('click', async () => {
     return;
   }
 
-  const saveResp = await window.electronAPI?.setSavedLogin?.({
+  const saveResp = await window.msykAPI?.setSavedLogin?.({
     remember,
     username,
     password,

@@ -14,5 +14,6 @@
 *.pdf binary
 *.dll binary
 *.exe binary
+*.jar binary
 *.zip binary
 *.rar binary

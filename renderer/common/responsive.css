@@ -486,6 +486,17 @@ body[data-page] select {
     padding: 4px calc(10px + var(--safe-right)) 4px calc(10px + var(--safe-left));
   }
 
+  body[data-page="homework-detail"] .detailModes {
+    min-height: 50px;
+    padding: 5px calc(10px + var(--safe-right)) 5px calc(10px + var(--safe-left));
+    overflow-x: auto;
+  }
+
+  body[data-page="homework-detail"] .detailModeBtn {
+    flex: 1 0 auto;
+    min-height: 40px;
+  }
+
   body[data-page="homework-detail"] #wv {
     min-height: 0;
   }

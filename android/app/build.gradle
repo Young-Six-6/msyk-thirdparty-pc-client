@@ -1,0 +1,62 @@
+import groovy.json.JsonSlurper
+
+apply plugin: 'com.android.application'
+
+def packageInfo = new JsonSlurper().parse(rootProject.file('../package.json'))
+def versionParts = String.valueOf(packageInfo.version).tokenize('.').collect { part ->
+    def match = (part =~ /\d+/)
+    match.find() ? match.group().toInteger() : 0
+}
+while (versionParts.size() < 3) versionParts.add(0)
+def generatedWebAssets = file("$buildDir/generated/web-assets")
+
+android {
+    namespace 'com.youngsix.msyk'
+    compileSdk 36
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    defaultConfig {
+        applicationId 'com.youngsix.msyk'
+        minSdk 24
+        targetSdk 35
+        versionCode versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
+        versionName String.valueOf(packageInfo.version)
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main.assets.srcDir generatedWebAssets
+    }
+}
+
+tasks.register('syncWebAssets', Sync) {
+    from(rootProject.file('../renderer')) {
+        into 'renderer'
+    }
+    from(rootProject.file('../pics')) {
+        into 'pics'
+    }
+    into generatedWebAssets
+}
+
+tasks.named('preBuild').configure {
+    dependsOn tasks.named('syncWebAssets')
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.16.0'
+}

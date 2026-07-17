@@ -3,7 +3,7 @@ window.Theme?.initTheme();
 const $ = (s) => document.querySelector(s);
 
 (async () => {
-  const resp = await window.electronAPI.apiGetSession();
+  const resp = await window.msykAPI.apiGetSession();
   const s = resp?.data || resp;
 
   $('#realName').textContent = s?.realName || '--';
@@ -41,7 +41,7 @@ $('#backBtn')?.addEventListener('click', () => {
 });
 
 $('#logout')?.addEventListener('click', async () => {
-  await window.electronAPI.apiLogout();
+  await window.msykAPI.apiLogout();
   location.replace('../login/index.html');
 });
 

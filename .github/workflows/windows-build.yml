@@ -1,4 +1,4 @@
-name: Build Windows EXE
+name: Build Windows EXE and Android APK
 
 on:
   workflow_dispatch:
@@ -28,8 +28,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-windows:
-    name: Build Windows EXE
+  build-apps:
+    name: Build Windows EXE and Android APK
     runs-on: windows-latest
 
     env:
@@ -101,12 +101,45 @@ jobs:
         run: |
           npm run dist:win -- --publish never
 
-      - name: Show dist files
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36
+        shell: pwsh
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build Android APK
+        shell: pwsh
+        run: |
+          .\android\gradlew.bat -p android :app:lintDebug :app:assembleDebug --stacktrace
+
+          $source = Get-ChildItem -Path android/app/build/outputs/apk/debug -File -Filter *.apk | Select-Object -First 1
+          if (-not $source) {
+            throw "Android 构建完成但没有找到 APK"
+          }
+
+          $target = Join-Path $source.DirectoryName "msyk-android-v$env:APP_VERSION-debug.apk"
+          if ($source.FullName -ne $target) {
+            Move-Item -LiteralPath $source.FullName -Destination $target -Force
+          }
+
+      - name: Show build files
         shell: pwsh
         run: |
           Get-ChildItem -Path dist -Recurse | Select-Object FullName, Length
+          Get-ChildItem -Path android/app/build/outputs/apk -Recurse -File -Filter *.apk | Select-Object FullName, Length
 
-      - name: Upload build artifacts
+      - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe-v${{ env.APP_VERSION }}
@@ -116,6 +149,13 @@ jobs:
             dist/**/latest.yml
             dist/**/builder-debug.yml
             dist/**/builder-effective-config.yaml
+          if-no-files-found: error
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-v${{ env.APP_VERSION }}
+          path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       - name: Prepare release tag
@@ -170,6 +210,7 @@ jobs:
           $files += Get-ChildItem -Path dist -Recurse -File -Filter *.exe | ForEach-Object { $_.FullName }
           $files += Get-ChildItem -Path dist -Recurse -File -Filter *.blockmap | ForEach-Object { $_.FullName }
           $files += Get-ChildItem -Path dist -Recurse -File -Filter latest.yml | ForEach-Object { $_.FullName }
+          $files += Get-ChildItem -Path android/app/build/outputs/apk/debug -Recurse -File -Filter *.apk | ForEach-Object { $_.FullName }
 
           if ($files.Count -eq 0) {
             throw "dist 目录中没有找到可发布文件"
@@ -182,5 +223,5 @@ jobs:
 
           gh release create $env:RELEASE_TAG @files `
             --title "$env:RELEASE_TITLE" `
-            --notes "自动构建版本：$env:APP_VERSION`n提交：$env:GITHUB_SHA" `
+            --notes "自动构建版本：$env:APP_VERSION`n包含：Windows EXE、Android debug-signed APK`n提交：$env:GITHUB_SHA" `
             --latest

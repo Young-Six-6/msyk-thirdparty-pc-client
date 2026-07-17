@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
   <title>作业详情</title>
   <script src="../common/theme.js"></script>
+  <script src="../common/native-android.js?v=1.2.2"></script>
+  <script src="../common/platform.js?v=1.2.2"></script>
   <link rel="stylesheet" href="../common/theme.css">
   <link rel="stylesheet" href="./homeworkDetail.css">
   <link rel="stylesheet" href="../common/responsive.css">
@@ -17,6 +19,12 @@
     <div class="title" id="titleText">作业详情</div>
     <span id="timer" class="timer"></span>
     <button id="submitBtn" class="submitBtn" style="display:none;">提交阅读</button>
+  </div>
+
+  <div id="detailModes" class="detailModes" role="tablist" style="display:none;">
+    <button class="detailModeBtn active" type="button" role="tab" data-detail-mode="card" aria-selected="true">答题卡</button>
+    <button class="detailModeBtn" type="button" role="tab" data-detail-mode="question" aria-selected="false">题干材料</button>
+    <button class="detailModeBtn" type="button" role="tab" data-detail-mode="answer" aria-selected="false">答案材料</button>
   </div>
 
   <!-- 题目导航栏 -->
@@ -32,11 +40,17 @@
     useragent="Mozilla/5.0 (Linux; Android 15; NE2210 Build/AP3A.240617.008; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.58 Mobile Safari/537.36"
   ></webview>
 
+  <div id="viewerEmpty" class="viewerEmpty" style="display:none;">
+    <span id="viewerEmptyText"></span>
+    <button id="forceAnswerBtn" class="forceAnswerBtn" type="button" style="display:none;">强制显示</button>
+  </div>
+
   <div id="toast" class="toast" style="display:none;"></div>
 
   <script>
     window.Theme?.initTheme();
 
+    window.msykPrepareNativeViewers?.();
     const wv = document.getElementById('wv');
     const qNav = document.getElementById('qNav');
     const prevBtn = document.getElementById('prevBtn');
@@ -46,9 +60,17 @@
     const timerEl = document.getElementById('timer');
     const titleEl = document.getElementById('titleText');
     const toastEl = document.getElementById('toast');
+    const detailModesEl = document.getElementById('detailModes');
+    const viewerEmptyEl = document.getElementById('viewerEmpty');
+    const viewerEmptyTextEl = document.getElementById('viewerEmptyText');
+    const forceAnswerBtn = document.getElementById('forceAnswerBtn');
 
     /* ====== 状态 ====== */
     const urls = [];
+    const cardUrls = [];
+    const questionUrls = [];
+    const answerUrls = [];
+    const debugAnswerUrls = [];
     const resIds = [];       // 对应每题的 resourceId（阅读模式）
     let currentIdx = 0;
     let isReadMode = false;  // 是否为阅读材料模式
@@ -57,6 +79,10 @@
     let listFrom = 'home';
     let startTime = 0;       // 开始阅读时间(ms)
     let perQStartTime = 0;   // 当前题开始时间
+    let detailModesEnabled = false;
+    let currentDetailMode = 'card';
+    let answerState = 'hidden';
+    let debugForceAllowed = false;
 
     /* ====== 工具 ====== */
     function toast(msg) {
@@ -73,7 +99,30 @@
       return `${m}:${s}`;
     }
 
+    function viewerTypeForUrl(url) {
+      const path = String(url || '').toLowerCase().split(/[?#]/, 1)[0];
+      if (path.endsWith('.pdf')) return 'pdf';
+      if (/\.(png|jpe?g|gif|webp|bmp)$/.test(path) || /x-oss-process=image/i.test(url)) return 'image';
+      return 'web';
+    }
+
+    function setViewerSource(url, title, type = '') {
+      wv.dataset.viewerTitle = title || '作业材料';
+      wv.dataset.viewerType = type || viewerTypeForUrl(url);
+      wv.src = url || 'about:blank';
+    }
+
     /* ====== 参数解析 ====== */
+    function parseUrlArray(raw) {
+      if (!raw) return [];
+      try {
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr.filter(u => u && typeof u === 'string') : [];
+      } catch {
+        return [];
+      }
+    }
+
     function parseParams() {
       const p = new URLSearchParams(location.search);
 
@@ -81,17 +130,25 @@
       homeworkId = p.get('homeworkId') || '';
       modifyNum = Number(p.get('modifyNum') || 0);
       listFrom = p.get('from') === 'me' ? 'me' : 'home';
+      detailModesEnabled = p.get('detailModes') === '1';
+
+      if (detailModesEnabled) {
+        const cardUrl = p.get('url');
+        if (cardUrl) cardUrls.push(cardUrl);
+        questionUrls.push(...parseUrlArray(p.get('questionUrls')));
+        answerUrls.push(...parseUrlArray(p.get('answerUrls')));
+        debugAnswerUrls.push(...parseUrlArray(p.get('debugAnswerUrls')));
+        debugForceAllowed = p.get('debugForceAllowed') === '1';
+        answerState = ['available', 'empty', 'hidden'].includes(p.get('answerState'))
+          ? p.get('answerState')
+          : (answerUrls.length ? 'available' : 'hidden');
+        urls.push(...cardUrls);
+        return;
+      }
 
       // 优先解析 urls（JSON 数组）
       const raw = p.get('urls');
-      if (raw) {
-        try {
-          const arr = JSON.parse(raw);
-          if (Array.isArray(arr) && arr.length > 0) {
-            urls.push(...arr.filter(u => u && typeof u === 'string'));
-          }
-        } catch {}
-      }
+      urls.push(...parseUrlArray(raw));
 
       // 兼容单 url
       if (!urls.length) {
@@ -120,7 +177,7 @@
       if (!resId) return;
 
       try {
-        const fn = window.electronAPI?.submitReadTime;
+        const fn = window.msykAPI?.submitReadTime;
         if (typeof fn !== 'function') {
           console.warn('[homeworkDetail] submitReadTime 不可用（preload 未刷新？）');
           return;
@@ -145,7 +202,14 @@
       await reportCurrentQTime();
 
       currentIdx = newIdx;
-      wv.src = urls[currentIdx];
+      const modeTitle = currentDetailMode === 'card'
+        ? '答题卡'
+        : (currentDetailMode === 'answer' ? '答案材料' : '题干材料');
+      setViewerSource(
+        urls[currentIdx],
+        detailModesEnabled ? `${modeTitle} ${currentIdx + 1}` : `作业材料 ${currentIdx + 1}`,
+        currentDetailMode === 'card' ? 'web' : '',
+      );
       perQStartTime = Date.now();
       updateNav();
     }
@@ -156,9 +220,59 @@
         return;
       }
       qNav.style.display = 'flex';
-      qIndicator.textContent = `第 ${currentIdx + 1} / ${urls.length} 题`;
+      const unit = detailModesEnabled && currentDetailMode !== 'card' ? '份' : '题';
+      qIndicator.textContent = `第 ${currentIdx + 1} / ${urls.length} ${unit}`;
       prevBtn.disabled = currentIdx <= 0;
       nextBtn.disabled = currentIdx >= urls.length - 1;
+    }
+
+    function detailEmptyMessage(mode) {
+      if (mode === 'question') return '老师未上传题干材料';
+      if (mode === 'answer') {
+        return answerState === 'hidden' ? '答案材料尚未公布' : '老师未上传答案材料';
+      }
+      return '答题卡暂时无法显示';
+    }
+
+    function switchDetailMode(mode) {
+      if (!detailModesEnabled) return;
+
+      const collections = {
+        card: cardUrls,
+        question: questionUrls,
+        answer: answerState === 'available' ? answerUrls : [],
+      };
+      if (!collections[mode]) return;
+
+      currentDetailMode = mode;
+      currentIdx = 0;
+      urls.splice(0, urls.length, ...collections[mode]);
+
+      detailModesEl.querySelectorAll('[data-detail-mode]').forEach((button) => {
+        const active = button.dataset.detailMode === mode;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+
+      if (urls.length) {
+        forceAnswerBtn.style.display = 'none';
+        viewerEmptyEl.style.display = 'none';
+        wv.style.display = '';
+        const modeTitle = mode === 'card' ? '答题卡' : (mode === 'answer' ? '答案材料 1' : '题干材料 1');
+        setViewerSource(urls[0], modeTitle, mode === 'card' ? 'web' : '');
+      } else {
+        setViewerSource('about:blank', '作业材料');
+        wv.style.display = 'none';
+        viewerEmptyTextEl.textContent = detailEmptyMessage(mode);
+        forceAnswerBtn.style.display = mode === 'answer'
+          && answerState === 'hidden'
+          && debugForceAllowed
+          && debugAnswerUrls.length
+          ? ''
+          : 'none';
+        viewerEmptyEl.style.display = 'flex';
+      }
+      updateNav();
     }
 
     /* ====== 阅读模式：顶部栏 + 计时 + 提交 ====== */
@@ -186,7 +300,7 @@
         // 先报最后一题用时
         await reportCurrentQTime();
 
-        const fn = window.electronAPI?.submitReadCountTime;
+        const fn = window.msykAPI?.submitReadCountTime;
         if (typeof fn !== 'function') {
           alert('提交接口不可用，请重启应用后再试');
           return;
@@ -223,8 +337,13 @@
     /* ====== 初始化 ====== */
     parseParams();
 
-    wv.src = urls.length > 0 ? urls[0] : 'about:blank';
-    if (urls.length > 1) updateNav();
+    if (detailModesEnabled) {
+      detailModesEl.style.display = 'flex';
+      switchDetailMode('card');
+    } else {
+      setViewerSource(urls.length > 0 ? urls[0] : 'about:blank', '作业材料 1');
+      if (urls.length > 1) updateNav();
+    }
 
     initReadMode();
 
@@ -319,6 +438,19 @@
     /* ====== 导航按钮 ====== */
     prevBtn.addEventListener('click', () => navigateTo(currentIdx - 1));
     nextBtn.addEventListener('click', () => navigateTo(currentIdx + 1));
+
+    detailModesEl.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-detail-mode]');
+      if (button) switchDetailMode(button.dataset.detailMode);
+    });
+
+    forceAnswerBtn.addEventListener('click', () => {
+      if (!debugForceAllowed || !debugAnswerUrls.length) return;
+      answerUrls.splice(0, answerUrls.length, ...debugAnswerUrls);
+      answerState = answerUrls.length ? 'available' : 'empty';
+      switchDetailMode('answer');
+      toast('已在调试模式强制显示答案材料');
+    });
 
     /* ====== 提交按钮 ====== */
     submitBtn.addEventListener('click', doSubmitRead);

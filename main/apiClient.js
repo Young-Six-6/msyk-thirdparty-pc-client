@@ -330,6 +330,21 @@ class ApiClient {
     });
   }
 
+  // 学生当前可用科目。subjectCode 必须使用服务端返回的真实 code。
+  async getHomeworkSubjects({ studentId, unitId } = {}) {
+    const sid = studentId || this.session.studentId;
+    const uid = unitId || this.session.unitId;
+    if (!sid) throw new Error('getHomeworkSubjects 缺少 studentId');
+    if (!uid) throw new Error('getHomeworkSubjects 缺少 unitId');
+
+    const params = {
+      studentId: String(sid),
+      unitId: String(uid),
+    };
+
+    return await this.postSigned('/ws/student/homework/studentHomework/searchSubjectInfo', params);
+  }
+
   // 作业列表
   async getHomeworkList({
     studentId,

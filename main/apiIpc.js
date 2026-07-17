@@ -89,6 +89,17 @@ function registerApiIpc(ipcMain, apiClient) {
     }
   });
 
+  ipcMain.handle('hw:subjects', async () => {
+    try {
+      const { status, data } = await apiClient.getHomeworkSubjects();
+
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
   ipcMain.handle('hw:list', async (event, payload = {}) => {
     try {
       const {

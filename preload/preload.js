@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   homeStats: () => ipcRenderer.invoke('home:stats'),
 
   // ===== homework list & view =====
+  hwSubjects: () => ipcRenderer.invoke('hw:subjects'),
   hwList: (payload) => ipcRenderer.invoke('hw:list', payload),
   hwCardPreviewUrl: (payload) => ipcRenderer.invoke('hw:cardPreviewUrl', payload),
   hwStatus: (payload) => ipcRenderer.invoke('hw:status', payload),

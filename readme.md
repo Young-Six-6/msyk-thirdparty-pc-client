@@ -1,6 +1,5 @@
-# msyk-thirdparty-pc-client-一个美师优课第三方PC客户端
+# msyk-thirdparty-pc-client-一个美师优课第三方客户端
 <img src="./pics/icon.ico" width = "128" height = "128" alt="icon" />
-旨在填补美师优课没官方pc客户端的空缺（尽管有web端）  
 
 ## Install
 参见Release  
@@ -25,7 +24,7 @@
 [-]自定义背景  
 [-]增加GitHub page介绍页  
 [X]学习圈和错题本（可能不会开发）  
-[-]Android Phone项目：`正在开发`
+[⍻]Android Phone项目：支持通过 GitHub Actions 构建测试 APK，功能持续完善
 
 [+] 暂时认为完成 [⍻] 部分完成 [-] 等待完成 [X] 近期不会完成  
 

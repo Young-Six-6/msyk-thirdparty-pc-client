@@ -45,6 +45,13 @@ yarn.lock
 # ===================== Electron 项目忽略规则 =====================
 dist/
 
+# Android/Gradle 构建输出与本机配置
+android/.gradle/
+android/**/build/
+android/local.properties
+*.jks
+*.keystore
+
 # Electron 缓存/临时文件
 electron-builder-cache/
 electron-builder-effective-config.yaml

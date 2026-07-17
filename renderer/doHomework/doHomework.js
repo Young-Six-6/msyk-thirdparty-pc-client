@@ -1,3 +1,4 @@
+window.msykPrepareNativeViewers?.();
 window.Theme?.initTheme();
 const $ = (s) => document.querySelector(s);
 
@@ -58,6 +59,25 @@ function getMaterialsFromInfo(info) {
 		});
 }
 
+function getMaterialViewerType(item, url) {
+	const raw = item?.raw || {};
+	const hint = [
+		item?.title,
+		raw.fileName,
+		raw.fileType,
+		raw.resourceType,
+		raw.materialType,
+		raw.suffix,
+	].filter(Boolean).join(' ').toLowerCase();
+	const path = String(url || '').toLowerCase().split(/[?#]/, 1)[0];
+	if (path.endsWith('.pdf') || /(?:^|[.\s])pdf(?:\s|$)/.test(hint)) return 'pdf';
+	if (/\.(png|jpe?g|gif|webp|bmp)$/.test(path)
+		|| /x-oss-process=image/i.test(url)
+		|| /\b(pptx?|powerpoint)\b/.test(hint)
+		|| /\b(png|jpe?g|gif|webp|bmp|image|图片)\b/.test(hint)) return 'image';
+	return 'web';
+}
+
 function updateMaterialNav() {
 	const nav = $('#materialNav');
 	const indicator = $('#materialIndicator');
@@ -112,7 +132,17 @@ function loadMaterialAt(index) {
 	if (empty) empty.style.display = 'none';
 	if (wv) {
 		wv.style.display = 'inline-flex';
+		wv.dataset.viewerTitle = item?.title || ('作业材料 ' + (ctx.materialIndex + 1));
+		wv.dataset.viewerType = getMaterialViewerType(item, url);
 		if (wv.src !== url) wv.src = url;
+		if (wv.dataset.viewerType === 'pdf'
+			&& typeof wv.openNativeViewer === 'function'
+			&& wv.__lastAutoOpenedPdf !== url) {
+			wv.__lastAutoOpenedPdf = url;
+			setTimeout(() => {
+				if (wv.src === url) wv.openNativeViewer();
+			}, 80);
+		}
 	}
 
 	updateMaterialNav();
@@ -126,12 +156,14 @@ function fmtSec(sec) {
 	return m + ':' + s;
 }
 
-function toast(msg) {
+function toast(msg, duration = 1800) {
 	const el = $('#toast');
 	el.textContent = String(msg || '');
 	el.style.display = 'block';
 	clearTimeout(toast._t);
-	toast._t = setTimeout(() => el.style.display = 'none', 1800);
+	if (duration > 0) {
+		toast._t = setTimeout(() => el.style.display = 'none', duration);
+	}
 }
 
 $('#backBtn')?.addEventListener('click', () => {
@@ -157,6 +189,11 @@ const ctx = {
 	timerInterval: null,
 	uploadingMedia: false
 };
+
+window.addEventListener('msyk-upload-progress', event => {
+	if (!ctx.uploadingMedia) return;
+	toast(event.detail?.message || '正在上传...', 0);
+});
 
 
 function isDebugModeEnabled() {
@@ -322,6 +359,18 @@ function getCards() {
 	return d.homeworkCardList || d.dtkExercises || [];
 }
 
+function getSavedStudentAnswer(question) {
+	const candidates = [
+		question?.studentAnswer,
+		question?.savedAnswer,
+		question?.studentAnswerValue,
+	];
+	for (const value of candidates) {
+		if (value !== undefined && value !== null && String(value) !== '') return value;
+	}
+	return '';
+}
+
 function cardFields(q, idx) {
 	const sn = q.serialNumber || q.orderNum || q.questionNum || (idx + 1),
 		qt = Number(q.questionType ?? 0);
@@ -332,7 +381,12 @@ function cardFields(q, idx) {
 	} catch {}
 	const homeworkResourceId = q.homeworkResourceId ?? q.resourceId ?? q.id ?? q.homeworkCardId ?? 0;
 	const questionId = q.questionId || q.resId || q.questionResId || '';
-	const existingAnswer = q.answer ?? q.studentAnswer ?? q.answerStr ?? '';
+	const studentAnswer = getSavedStudentAnswer(q);
+	const existingAnswer = qt === QT.TIANKONG
+		&& studentAnswer !== ''
+		&& Array.isArray(q.blankList)
+		? JSON.stringify(q.blankList.map(value => String(value ?? '')))
+		: studentAnswer;
 	return {
 		serialNumber: sn,
 		score: q.score ?? '',
@@ -526,7 +580,7 @@ async function fillCorrectAnswers() {
 	button.textContent = '获取中...';
 
 	try {
-		const response = await window.electronAPI.getCorrectAnswers({
+		const response = await window.msykAPI.getCorrectAnswers({
 			homeworkId: ctx.homeworkId,
 			modifyNum: ctx.modifyNum,
 			unitId: ctx.unitId,
@@ -621,7 +675,8 @@ function encodeFillBlank(v) {
 async function saveAllAnswers() {
 	const cards = getCards(),
 		serials = [],
-		answers = [];
+		answers = [],
+		expected = new Map();
 	for (let i = 0; i < cards.length; i++) {
 		const f = cardFields(cards[i], i);
 		if (!isObjective(f.questionType)) continue;
@@ -633,9 +688,13 @@ async function saveAllAnswers() {
 		else if (f.questionType === QT.TIANKONG) encoded = encodeFillBlank(raw);
 		serials.push(String(f.serialNumber));
 		answers.push(encoded);
+		expected.set(String(f.serialNumber), {
+			answer: encoded,
+			questionType: f.questionType,
+		});
 	}
-	if (!serials.length) return true;
-	const resp = await window.electronAPI.saveCardAnswerObjectives({
+	if (!serials.length) return { ok: true, verified: true, skipped: true };
+	const resp = await window.msykAPI.saveCardAnswerObjectives({
 		homeworkId: String(ctx.homeworkId),
 		studentId: String(ctx.studentId),
 		serialNumbers: serials.join(';'),
@@ -645,15 +704,134 @@ async function saveAllAnswers() {
 	});
 	if (!resp || resp.code !== 200) {
 		alert('请求失败: ' + (resp?.msg || '无响应'));
-		return false;
+		return { ok: false, verified: false };
 	}
-	const raw = resp.raw || '';
-	if (raw && !raw.includes('"code":"10000"')) {
-		alert('保存失败: ' + raw.slice(0, 100));
-		return false;
+	const payload = parseApiPayload(resp.data, resp.raw);
+	const businessCode = String(payload?.code ?? '');
+	if (businessCode !== '10000') {
+		const message = payload?.message || payload?.msg || resp.msg || `业务码 ${businessCode || '缺失'}`;
+		alert('保存失败: ' + String(message).slice(0, 160));
+		return { ok: false, verified: false };
 	}
+
+	for (let i = 0; i < cards.length; i++) {
+		const fields = cardFields(cards[i], i);
+		const saved = expected.get(String(fields.serialNumber));
+		if (saved) {
+			cards[i].studentAnswer = saved.answer;
+			if (saved.questionType === QT.TIANKONG) cards[i].blankList = parseAnswerArray(saved.answer);
+		}
+	}
+	saveLocalDraft(expected);
 	Object.keys(ctx.dirtyFlag).forEach(k => ctx.dirtyFlag[k] = false);
-	return true;
+
+	const verification = await verifySavedAnswers(expected);
+	if (verification.info) ctx.info = verification.info;
+	return { ok: true, verified: verification.verified, reason: verification.reason };
+}
+
+function parseApiPayload(data, raw) {
+	if (data && typeof data === 'object') return data;
+	for (const value of [data, raw]) {
+		if (typeof value !== 'string' || !value.trim()) continue;
+		try {
+			const parsed = JSON.parse(value);
+			if (parsed && typeof parsed === 'object') return parsed;
+		} catch {}
+	}
+	return null;
+}
+
+function comparableAnswer(value, questionType) {
+	const raw = String(value ?? '');
+	if (questionType === QT.DUOXUAN) return encodeMultiChoice(raw);
+	if (questionType === QT.TIANKONG) return JSON.stringify(parseAnswerArray(value));
+	if (questionType === QT.PANDUAN) return normalizeJudgmentAnswer(raw);
+	return raw.trim().toUpperCase();
+}
+
+function localDraftKey() {
+	return `msyk-homework-draft:${ctx.studentId}:${ctx.homeworkId}:${ctx.modifyNum}`;
+}
+
+function saveLocalDraft(expected) {
+	try {
+		localStorage.setItem(localDraftKey(), JSON.stringify({
+			savedAt: Date.now(),
+			answers: Array.from(expected, ([serialNumber, value]) => ({ serialNumber, ...value })),
+		}));
+	} catch (error) {
+		console.warn('[save] 本机草稿写入失败:', error);
+	}
+}
+
+function loadLocalDraft() {
+	try {
+		const parsed = JSON.parse(localStorage.getItem(localDraftKey()) || 'null');
+		if (!parsed || !Array.isArray(parsed.answers)) return [];
+		if (Date.now() - Number(parsed.savedAt || 0) > 7 * 24 * 60 * 60 * 1000) {
+			localStorage.removeItem(localDraftKey());
+			return [];
+		}
+		return parsed.answers;
+	} catch {
+		return [];
+	}
+}
+
+function clearLocalDraft() {
+	try { localStorage.removeItem(localDraftKey()); } catch {}
+}
+
+function restoreLocalDraftFallback() {
+	const bySerial = new Map(loadLocalDraft().map(item => [String(item.serialNumber), item]));
+	let restored = 0;
+	getCards().forEach((question, index) => {
+		const fields = cardFields(question, index);
+		if (!isObjective(fields.questionType) || fields.existingAnswer !== '') return;
+		const draft = bySerial.get(String(fields.serialNumber));
+		if (!draft || draft.answer === undefined || draft.answer === null) return;
+		ctx.answersMap[fields.serialNumber] = String(draft.answer);
+		restored++;
+	});
+	return restored;
+}
+
+async function verifySavedAnswers(expected) {
+	let lastReason = '服务器暂未返回刚保存的答案';
+	for (let attempt = 0; attempt < 2; attempt++) {
+		if (attempt) await new Promise(resolve => setTimeout(resolve, 450));
+		const response = await window.msykAPI.getHomeworkCardInfo({
+			homeworkId: ctx.homeworkId,
+			studentId: ctx.studentId,
+			modifyNum: ctx.modifyNum,
+			unitId: ctx.unitId,
+		});
+		if (!response || response.code !== 200) {
+			lastReason = response?.msg || '重新读取作业失败';
+			continue;
+		}
+
+		const freshInfo = response.data || {};
+		const freshCards = freshInfo.homeworkCardList || freshInfo.dtkExercises || [];
+		const actualBySerial = new Map();
+		freshCards.forEach((question, index) => {
+			const fields = cardFields(question, index);
+			actualBySerial.set(String(fields.serialNumber), fields);
+		});
+		const missing = [];
+		for (const [serialNumber, saved] of expected) {
+			const actual = actualBySerial.get(serialNumber);
+			if (!actual || comparableAnswer(actual.existingAnswer, saved.questionType)
+				!== comparableAnswer(saved.answer, saved.questionType)) {
+				missing.push(serialNumber);
+			}
+		}
+		if (!missing.length) return { verified: true, info: freshInfo };
+		lastReason = `第 ${missing.join('、')} 题尚未回读到保存值`;
+	}
+	console.warn('[save] 保存接口成功，但回读校验未通过:', lastReason);
+	return { verified: false, reason: lastReason };
 }
 
 function renderObjInput(q, f) {
@@ -789,7 +967,7 @@ function refreshDirtyMark(sn) {
 }
 
 async function refreshTime() {
-	const t = await window.electronAPI.getHomeworkTime({
+	const t = await window.msykAPI.getHomeworkTime({
 		homeworkId: ctx.homeworkId,
 		studentId: ctx.studentId,
 		unitId: ctx.unitId
@@ -812,7 +990,7 @@ async function boot() {
 		alert('缺少 homeworkId');
 		return;
 	}
-	const s = await window.electronAPI.apiGetSession();
+	const s = await window.msykAPI.apiGetSession();
 	const ss = s?.data || s || {};
 	ctx.studentId = ss.studentId || '';
 	ctx.unitId = ss.unitId || '';
@@ -820,7 +998,7 @@ async function boot() {
 		alert('缺少 studentId/unitId');
 		return;
 	}
-	const ck = await window.electronAPI.checkHomeworkEndTime({
+	const ck = await window.msykAPI.checkHomeworkEndTime({
 		homeworkId: ctx.homeworkId,
 		unitId: ctx.unitId
 	});
@@ -828,7 +1006,7 @@ async function boot() {
 		alert(ck?.msg || 'checkHomeworkEndTime 失败');
 		return;
 	}
-	const info = await window.electronAPI.getHomeworkCardInfo({
+	const info = await window.msykAPI.getHomeworkCardInfo({
 		homeworkId: ctx.homeworkId,
 		studentId: ctx.studentId,
 		modifyNum: ctx.modifyNum,
@@ -839,11 +1017,20 @@ async function boot() {
 		return;
 	}
 	ctx.info = info.data || {};
+	ctx.answersMap = {};
+	getCards().forEach((question, index) => {
+		const fields = cardFields(question, index);
+		if (isObjective(fields.questionType) && fields.existingAnswer !== '') {
+			ctx.answersMap[fields.serialNumber] = String(fields.existingAnswer);
+		}
+	});
+	const restoredDraftCount = restoreLocalDraftFallback();
 	$('#title').textContent = ctx.info.homeworkName || '做作业';
 	ctx.materials = getMaterialsFromInfo(ctx.info);
 	ctx.materialIndex = 0;
 	loadMaterialAt(0);
 	renderQuestions();
+	if (restoredDraftCount) toast(`已恢复本机保存的 ${restoredDraftCount} 道答案`, 3000);
 	await refreshTime();
 	initDebugAnswerTimeControls();
 	if (ctx.timerInterval) clearInterval(ctx.timerInterval);
@@ -868,12 +1055,43 @@ function blobToBase64(blob) {
 }
 
 async function imageFileToJpeg(file) {
-	const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+	let source = null;
+	let closeSource = () => {};
+
+	if (typeof createImageBitmap === 'function') {
+		try {
+			const bitmap = await createImageBitmap(file);
+			source = bitmap;
+			closeSource = () => bitmap.close();
+		} catch (error) {
+			console.warn('[upload] createImageBitmap failed, fallback to Image:', error);
+		}
+	}
+
+	if (!source) {
+		const objectUrl = URL.createObjectURL(file);
+		try {
+			source = await new Promise((resolve, reject) => {
+				const image = new Image();
+				image.onload = () => resolve(image);
+				image.onerror = () => reject(new Error('手机 WebView 无法解码所选图片'));
+				image.src = objectUrl;
+			});
+			closeSource = () => URL.revokeObjectURL(objectUrl);
+		} catch (error) {
+			URL.revokeObjectURL(objectUrl);
+			throw error;
+		}
+	}
+
 	try {
 		const maxSide = 2560;
-		const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-		const width = Math.max(1, Math.round(bitmap.width * scale));
-		const height = Math.max(1, Math.round(bitmap.height * scale));
+		const sourceWidth = Number(source.naturalWidth || source.width || 0);
+		const sourceHeight = Number(source.naturalHeight || source.height || 0);
+		if (!sourceWidth || !sourceHeight) throw new Error('所选图片尺寸无效');
+		const scale = Math.min(1, maxSide / Math.max(sourceWidth, sourceHeight));
+		const width = Math.max(1, Math.round(sourceWidth * scale));
+		const height = Math.max(1, Math.round(sourceHeight * scale));
 		const canvas = document.createElement('canvas');
 		canvas.width = width;
 		canvas.height = height;
@@ -881,12 +1099,12 @@ async function imageFileToJpeg(file) {
 		if (!context) throw new Error('无法处理图片');
 		context.fillStyle = '#fff';
 		context.fillRect(0, 0, width, height);
-		context.drawImage(bitmap, 0, 0, width, height);
+		context.drawImage(source, 0, 0, width, height);
 		const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
 		if (!blob) throw new Error('图片压缩失败');
 		return blob;
 	} finally {
-		bitmap.close();
+		closeSource();
 	}
 }
 
@@ -931,7 +1149,7 @@ async function uploadMediaBlob(questionIndex, blob, { mediaType, extension, cont
 	const answerUuid = createAnswerUuid();
 	const bitId = String(Date.now()).slice(-7);
 	const quesNum = nextMediaQuesNum(question);
-	const result = await window.electronAPI.uploadHomeworkMedia({
+	const result = await window.msykAPI.uploadHomeworkMedia({
 		base64: await blobToBase64(blob),
 		ext: extension,
 		contentType,
@@ -963,7 +1181,11 @@ async function uploadMediaBlob(questionIndex, blob, { mediaType, extension, cont
 }
 
 async function uploadSelectedImages(questionIndex, files) {
-	if (ctx.uploadingMedia || !files.length) return;
+	if (ctx.uploadingMedia) return;
+	if (!files.length) {
+		toast('未能读取所选图片，请重新选择', 3000);
+		return;
+	}
 	ctx.uploadingMedia = true;
 	try {
 		const question = getCards()[questionIndex];
@@ -973,7 +1195,7 @@ async function uploadSelectedImages(questionIndex, files) {
 			throw new Error(`每题最多上传 ${MAX_IMAGE_ANSWERS} 张图片`);
 		}
 		for (let index = 0; index < files.length; index++) {
-			toast(`正在上传图片 ${index + 1}/${files.length}`);
+			toast(`正在处理图片 ${index + 1}/${files.length}`, 0);
 			const jpeg = await imageFileToJpeg(files[index]);
 			await uploadMediaBlob(questionIndex, jpeg, {
 				mediaType: MEDIA_TYPE.IMAGE,
@@ -984,6 +1206,7 @@ async function uploadSelectedImages(questionIndex, files) {
 		}
 		toast('图片已上传');
 	} catch (error) {
+		toast('图片上传失败', 3000);
 		alert('图片上传失败: ' + (error?.message || String(error)));
 	} finally {
 		ctx.uploadingMedia = false;
@@ -1007,6 +1230,7 @@ async function uploadSelectedAudio(questionIndex, file) {
 		toast('音频已上传');
 		renderQuestions();
 	} catch (error) {
+		toast('音频上传失败', 3000);
 		alert('音频上传失败: ' + (error?.message || String(error)));
 	} finally {
 		ctx.uploadingMedia = false;
@@ -1024,7 +1248,7 @@ async function removeMediaAnswer(questionIndex, mediaIndex) {
 	try {
 		const answerId = String(answer.studentAnswerId || '');
 		if (answerId && answerId !== '-1' && answerId !== '-10001') {
-			const response = await window.electronAPI.removeCardAnswer({
+			const response = await window.msykAPI.removeCardAnswer({
 				answerId,
 				unitId: String(ctx.unitId)
 			});
@@ -1105,8 +1329,21 @@ async function doSaveOnly() {
 		return;
 	}
 	toast('保存中...');
-	const ok = await saveAllAnswers();
-	toast(ok ? '已保存' : '保存失败');
+	let result;
+	try {
+		result = await saveAllAnswers();
+	} catch (error) {
+		console.error('[save] 保存异常:', error);
+		alert('保存异常: ' + (error?.message || String(error)));
+		result = { ok: false, verified: false };
+	}
+	if (!result.ok) toast('保存失败');
+	else if (result.skipped) toast('没有需要保存的客观题答案');
+	else if (result.verified) toast('已保存并确认');
+	else {
+		toast('保存成功，回读待确认', 3000);
+		alert('保存接口已返回成功，但重新读取时未确认到答案：' + result.reason);
+	}
 	renderQuestions();
 }
 async function doSubmit() {
@@ -1121,10 +1358,10 @@ async function doSubmit() {
 	const usedSec = getSubmitUsedSec();
 
 	const saved = await saveAllAnswers();
-	if (!saved) return;
+	if (!saved.ok) return;
 
 	try {
-		const explainResp = await window.electronAPI.addStudentExplainSign?.({
+		const explainResp = await window.msykAPI.addStudentExplainSign?.({
 			studentId: String(ctx.studentId),
 			homeworkId: String(ctx.homeworkId),
 			homeworkResourceIds: '[]',
@@ -1154,7 +1391,7 @@ async function doSubmit() {
 	}
 
 	debugLog('[submit] answerInfo=', answerInfo);
-	const finalResp = await window.electronAPI.saveCardAnswer({
+	const finalResp = await window.msykAPI.saveCardAnswer({
 		answerInfo: JSON.stringify(answerInfo),
 		studentId: String(ctx.studentId),
 		homeworkId: String(ctx.homeworkId),
@@ -1172,6 +1409,7 @@ async function doSubmit() {
 	}
 
 	toast('提交成功');
+	clearLocalDraft();
 	const from = qs().from === 'me' ? 'me' : 'home';
 	setTimeout(() => location.replace('../homework/index.html?from=' + from), 600);
 }
@@ -1235,6 +1473,7 @@ function setupMaterialWebview() {
 
 	const fixGuest = async () => {
 		fixOuterSize();
+		if (typeof wv.insertCSS !== 'function') return;
 		try {
 			await wv.insertCSS(guestCss);
 		} catch (e) {

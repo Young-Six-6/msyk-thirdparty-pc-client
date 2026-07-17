@@ -76,8 +76,8 @@ function setDebugUI(enabled) {
 
 async function readDebugMode() {
   try {
-    if (window.electronAPI?.debugGet) {
-      return !!(await window.electronAPI.debugGet());
+    if (window.msykAPI?.debugGet) {
+      return !!(await window.msykAPI.debugGet());
     }
   } catch (e) {
     console.warn('[settings] debugGet failed', e);
@@ -89,8 +89,8 @@ async function readDebugMode() {
 async function writeDebugMode(enabled) {
   const on = !!enabled;
   try {
-    if (window.electronAPI?.debugSet) {
-      await window.electronAPI.debugSet(on);
+    if (window.msykAPI?.debugSet) {
+      await window.msykAPI.debugSet(on);
     } else {
       localStorage.setItem('msyk_debug_mode', on ? '1' : '0');
     }
