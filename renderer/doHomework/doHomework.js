@@ -10,6 +10,13 @@ const QT = {
 	GAICUO: 6
 };
 
+const MEDIA_TYPE = {
+	IMAGE: 0,
+	AUDIO: 1
+};
+const MAX_IMAGE_ANSWERS = 8;
+const MAX_AUDIO_ANSWERS = 1;
+
 function qs() {
 	const p = new URLSearchParams(location.search);
 	return Object.fromEntries(p.entries());
@@ -147,7 +154,8 @@ const ctx = {
 	debugModeEnabled: false,
 	customTimeEnabled: false,
 	customAnswerSec: 0,
-	timerInterval: null
+	timerInterval: null,
+	uploadingMedia: false
 };
 
 
@@ -346,6 +354,119 @@ function isObjective(qt) {
 
 function isImageType(qt) {
 	return qt === QT.ZHUGUAN || qt === QT.GAICUO;
+}
+
+function escapeHtml(value) {
+	const el = document.createElement('span');
+	el.textContent = String(value ?? '');
+	return el.innerHTML;
+}
+
+function parseListValue(value) {
+	if (Array.isArray(value)) return value.map(item => String(item ?? '')).filter(Boolean);
+	const text = String(value ?? '').trim();
+	if (!text) return [];
+	try {
+		const parsed = JSON.parse(text);
+		if (Array.isArray(parsed)) return parsed.map(item => String(item ?? '')).filter(Boolean);
+	} catch {}
+	return text.split(',').map(item => item.trim()).filter(Boolean);
+}
+
+function inferMediaType(url, fallback = 0) {
+	return /\.(?:mp3|m4a|aac|wav|ogg|webm)(?:$|[?#])/i.test(String(url || ''))
+		? MEDIA_TYPE.AUDIO
+		: Number(fallback || 0);
+}
+
+function normalizeMediaAnswer(item, fallback = {}) {
+	if (typeof item === 'string') item = { url: item };
+	item = item || {};
+	const url = toWpStatic(item.url || item.pictureUrl || item.downloadUrl || item.fileUrl || fallback.url || '');
+	if (!url) return null;
+	const rawType = item.answerType ?? item.pictureStatus ?? fallback.answerType ?? 0;
+	return {
+		url,
+		uuid: String(item.uuid || item.UUID || fallback.uuid || ''),
+		studentAnswerId: String(item.studentAnswerId ?? item.answerId ?? fallback.studentAnswerId ?? '-1'),
+		answerType: inferMediaType(url, rawType),
+		bitId: String(item.bitId ?? item.dzbId ?? fallback.bitId ?? '-1'),
+		quesNum: String(item.quesNum ?? fallback.quesNum ?? ''),
+		durationTime: String(item.durationTime ?? item.time ?? fallback.durationTime ?? '')
+	};
+}
+
+function getQuestionMedia(question) {
+	if (Array.isArray(question._mediaAnswers)) return question._mediaAnswers;
+
+	const arraySource = [
+		question.picUrlList,
+		question.upLoadPicList,
+		question.mUploadPicList,
+		question.answerServerList,
+		question.mediaAnswers
+	].find(value => Array.isArray(value) && value.length);
+
+	let media = [];
+	if (arraySource) {
+		media = arraySource.map(item => normalizeMediaAnswer(item)).filter(Boolean);
+	} else {
+		const urls = parseListValue(question.pictureUrl || question.studentAnswer || '');
+		const ids = parseListValue(question.studentAnswerIds || question.studentAnswerId || '');
+		const types = parseListValue(question.answerType || '');
+		const bitIds = parseListValue(question.bitIds || question.bitId || '');
+		const quesNums = parseListValue(question.quesNums || question.quesNum || '');
+		media = urls.map((url, index) => normalizeMediaAnswer(url, {
+			studentAnswerId: ids[index] || '-1',
+			answerType: types[index] || 0,
+			bitId: bitIds[index] || '-1',
+			quesNum: quesNums[index] || ''
+		})).filter(Boolean);
+	}
+
+	question._mediaAnswers = media;
+	return media;
+}
+
+function syncQuestionMediaFields(question) {
+	const media = getQuestionMedia(question);
+	const previousMax = Number(question.quesMaxNum) || 0;
+	question.pictureUrl = media.map(item => item.url).join(',');
+	question.studentAnswerIds = media.map(item => item.studentAnswerId || '-1').join(',');
+	question.answerType = media.map(item => item.answerType).join(',');
+	question.bitIds = media.map(item => item.bitId || '-1').join(',');
+	question.quesNums = media.map(item => item.quesNum || '').join(',');
+	question.quesMaxNum = Math.max(previousMax, ...media.map(item => Number(item.quesNum) || 0));
+}
+
+function createAnswerUuid() {
+	if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+		const random = window.crypto.getRandomValues(new Uint8Array(1))[0] & 15;
+		const value = char === 'x' ? random : (random & 3) | 8;
+		return value.toString(16);
+	});
+}
+
+function nextMediaQuesNum(question) {
+	const media = getQuestionMedia(question);
+	return Math.max(Number(question.quesMaxNum) || 0, ...media.map(item => Number(item.quesNum) || 0)) + 1;
+}
+
+function renderMediaAnswers(question, questionIndex) {
+	const media = getQuestionMedia(question);
+	if (!media.length) return '<div class="qMeta">当前没有图片或音频答案</div>';
+
+	return '<div class="mediaAnswerList">' + media.map((item, mediaIndex) => {
+		const url = escapeHtml(item.url);
+		const preview = item.answerType === MEDIA_TYPE.AUDIO
+			? '<audio class="audioAnswer" controls preload="metadata" src="' + url + '"></audio>'
+			: '<img class="thumb" src="' + url + '" alt="图片答案" />';
+		const meta = item.answerType === MEDIA_TYPE.AUDIO
+			? '音频' + (item.durationTime ? ' ' + escapeHtml(item.durationTime) : '')
+			: '图片';
+		return '<div class="mediaAnswerItem">' + preview + '<div class="mediaAnswerFooter"><span class="qMeta">' + meta + '</span><button class="btn mediaDeleteBtn" type="button" data-act="remove-media" data-idx="' + questionIndex + '" data-media-index="' + mediaIndex + '">删除</button></div></div>';
+	}).join('') + '</div>';
 }
 
 function parseAnswerArray(value) {
@@ -602,27 +723,30 @@ function renderQuestions() {
 			} [qt] || ('题型' + qt);
 		let body = '';
 		if (isObjective(qt)) body = renderObjInput(q, f);
-		else if (isImageType(qt)) body = '<div class="qAnsRow"><button class="btn" data-act="upload" data-idx="' + idx + '">上传图片</button><button class="btn" data-act="clear" data-idx="' + idx + '">清空</button></div>' + (f.answerUrl ? '<img class="thumb" src="' + f.answerUrl + '" alt="answer" />' : '<div class="qMeta">当前未上传图片</div>');
-		else body = '<div class="qAnsRow"><button class="btn" data-act="upload" data-idx="' + idx + '">上传图片</button></div>';
+		else if (isImageType(qt)) {
+			const media = getQuestionMedia(q);
+			const imageCount = media.filter(item => item.answerType === MEDIA_TYPE.IMAGE).length;
+			const audioCount = media.filter(item => item.answerType === MEDIA_TYPE.AUDIO).length;
+			body = '<div class="qAnsRow"><button class="btn" type="button" data-act="upload-image" data-idx="' + idx + '"' + (imageCount >= MAX_IMAGE_ANSWERS ? ' disabled' : '') + '>上传图片</button><button class="btn" type="button" data-act="upload-audio" data-idx="' + idx + '"' + (audioCount >= MAX_AUDIO_ANSWERS ? ' disabled' : '') + '>添加音频</button></div>' + renderMediaAnswers(q, idx);
+		} else body = '<div class="qMeta">暂不支持该题型作答</div>';
 		const dm = ctx.dirtyFlag[sn] ? ' <span class="dirtyMark">*</span>' : '';
 		return '<div class="qCard' + (isActive ? ' active' : '') + '" data-idx="' + idx + '"><div class="qTop"><div><div class="qName">第 ' + sn + ' 题 <span class="qTypeBadge">' + tn + '</span>' + dm + '</div><div class="qMeta">score=' + f.score + '</div></div><div class="qMeta">ID: ' + (f.resourceId || '-') + '</div></div><div class="qBody">' + body + '</div></div>';
 	}).join('');
 	list.querySelectorAll('.qCard').forEach(c => c.addEventListener('click', e => {
-		if (!e.target.closest('button,input,label')) navigateTo(Number(c.dataset.idx));
+		if (!e.target.closest('button,input,label,audio')) navigateTo(Number(c.dataset.idx));
 	}));
-	list.querySelectorAll('button[data-act="upload"]').forEach(b => b.addEventListener('click', () => {
+	list.querySelectorAll('button[data-act="upload-image"]').forEach(b => b.addEventListener('click', () => {
 		ctx._uploadTarget = Number(b.dataset.idx);
 		$('#fileInput').value = '';
 		$('#fileInput').click();
 	}));
-	list.querySelectorAll('button[data-act="clear"]').forEach(b => b.addEventListener('click', () => {
-		const q = cards[Number(b.dataset.idx)];
-		if (q) {
-			q.studentAnswer = '';
-			q.pictureUrl = '';
-			toast('已清空');
-			renderQuestions();
-		}
+	list.querySelectorAll('button[data-act="upload-audio"]').forEach(b => b.addEventListener('click', () => {
+		ctx._uploadTarget = Number(b.dataset.idx);
+		$('#audioInput').value = '';
+		$('#audioInput').click();
+	}));
+	list.querySelectorAll('button[data-act="remove-media"]').forEach(b => b.addEventListener('click', async () => {
+		await removeMediaAnswer(Number(b.dataset.idx), Number(b.dataset.mediaIndex));
 	}));
 	list.querySelectorAll('.optGroup input[type="radio"]').forEach(r => r.addEventListener('change', () => {
 		const g = r.closest('.optGroup');
@@ -729,47 +853,202 @@ async function boot() {
 	}, 1000);
 }
 
-$('#fileInput')?.addEventListener('change', async (e) => {
-	const file = e.target.files && e.target.files[0];
-	if (!file) return;
-	const idx = Number(ctx._uploadTarget),
-		cards = getCards(),
-		q = cards[idx];
-	if (!q) return;
-	const f = cardFields(q, idx);
-	if (!f.resourceId) {
-		alert('缺少 resourceId');
-		return;
+function blobToBase64(blob) {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => {
+			const dataUrl = String(reader.result || '');
+			const comma = dataUrl.indexOf(',');
+			if (comma < 0) reject(new Error('文件编码失败'));
+			else resolve(dataUrl.slice(comma + 1));
+		};
+		reader.onerror = () => reject(reader.error || new Error('文件读取失败'));
+		reader.readAsDataURL(blob);
+	});
+}
+
+async function imageFileToJpeg(file) {
+	const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+	try {
+		const maxSide = 2560;
+		const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+		const width = Math.max(1, Math.round(bitmap.width * scale));
+		const height = Math.max(1, Math.round(bitmap.height * scale));
+		const canvas = document.createElement('canvas');
+		canvas.width = width;
+		canvas.height = height;
+		const context = canvas.getContext('2d');
+		if (!context) throw new Error('无法处理图片');
+		context.fillStyle = '#fff';
+		context.fillRect(0, 0, width, height);
+		context.drawImage(bitmap, 0, 0, width, height);
+		const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+		if (!blob) throw new Error('图片压缩失败');
+		return blob;
+	} finally {
+		bitmap.close();
+	}
+}
+
+function readAudioDuration(file) {
+	return new Promise(resolve => {
+		const audio = document.createElement('audio');
+		const objectUrl = URL.createObjectURL(file);
+		let settled = false;
+		const finish = value => {
+			if (settled) return;
+			settled = true;
+			URL.revokeObjectURL(objectUrl);
+			audio.removeAttribute('src');
+			resolve(value);
+		};
+		const timeout = setTimeout(() => finish(''), 5000);
+		audio.addEventListener('loadedmetadata', () => {
+			clearTimeout(timeout);
+			const seconds = Math.max(0, Math.round(Number(audio.duration) || 0));
+			finish(seconds ? fmtSec(seconds) : '');
+		}, { once: true });
+		audio.addEventListener('error', () => {
+			clearTimeout(timeout);
+			finish('');
+		}, { once: true });
+		audio.preload = 'metadata';
+		audio.src = objectUrl;
+	});
+}
+
+async function uploadMediaBlob(questionIndex, blob, { mediaType, extension, contentType, durationTime = '' }) {
+	const question = getCards()[questionIndex];
+	if (!question) throw new Error('未找到上传目标题目');
+	const fields = cardFields(question, questionIndex);
+	if (!fields.questionId) throw new Error('缺少 questionId');
+
+	const media = getQuestionMedia(question);
+	const count = media.filter(item => item.answerType === mediaType).length;
+	if (mediaType === MEDIA_TYPE.IMAGE && count >= MAX_IMAGE_ANSWERS) throw new Error('图片答案已达到 8 张上限');
+	if (mediaType === MEDIA_TYPE.AUDIO && count >= MAX_AUDIO_ANSWERS) throw new Error('音频答案已达到上限');
+
+	const answerUuid = createAnswerUuid();
+	const bitId = String(Date.now()).slice(-7);
+	const quesNum = nextMediaQuesNum(question);
+	const result = await window.electronAPI.uploadHomeworkMedia({
+		base64: await blobToBase64(blob),
+		ext: extension,
+		contentType,
+		mediaType,
+		durationTime,
+		uuid: answerUuid,
+		bitId,
+		questionId: String(fields.questionId),
+		quesNum: String(quesNum),
+		homeworkId: String(ctx.homeworkId),
+		studentId: String(ctx.studentId),
+		modifyNum: String(ctx.modifyNum),
+		unitId: String(ctx.unitId)
+	});
+	if (!result || result.code !== 200 || !result.data) {
+		throw new Error(result?.msg || '上传失败');
 	}
 
-	toast('上传中...');
-	const reader = new FileReader();
-	const dataUrl = await new Promise((res, rej) => {
-		reader.onload = () => res(reader.result);
-		reader.onerror = rej;
-		reader.readAsDataURL(file);
+	const savedAnswer = normalizeMediaAnswer(result.data, {
+		uuid: answerUuid,
+		bitId,
+		quesNum,
+		answerType: mediaType,
+		durationTime
 	});
-	const pureBase64 = String(dataUrl || '').replace(/^data:image\/\w+;base64,/, '');
+	if (!savedAnswer) throw new Error('上传成功但返回的媒体地址为空');
+	media.push(savedAnswer);
+	syncQuestionMediaFields(question);
+}
 
-	const result = await window.electronAPI.uploadSubjectPic({
-		base64: pureBase64,
-		ext: (file.name.match(/\.(\w+)$/) || [, 'jpg'])[1],
-		contentType: file.type || 'image/jpeg',
-		questionId: f.questionId,
-		quesNum: f.quesNum || f.serialNumber,
-		homeworkId: ctx.homeworkId,
-		studentId: ctx.studentId,
-		modifyNum: ctx.modifyNum,
-		unitId: ctx.unitId,
-	});
-	if (!result || result.code !== 200) {
-		alert(result?.msg || '上传失败');
-		return;
+async function uploadSelectedImages(questionIndex, files) {
+	if (ctx.uploadingMedia || !files.length) return;
+	ctx.uploadingMedia = true;
+	try {
+		const question = getCards()[questionIndex];
+		if (!question) throw new Error('未找到上传目标题目');
+		const currentCount = getQuestionMedia(question).filter(item => item.answerType === MEDIA_TYPE.IMAGE).length;
+		if (currentCount + files.length > MAX_IMAGE_ANSWERS) {
+			throw new Error(`每题最多上传 ${MAX_IMAGE_ANSWERS} 张图片`);
+		}
+		for (let index = 0; index < files.length; index++) {
+			toast(`正在上传图片 ${index + 1}/${files.length}`);
+			const jpeg = await imageFileToJpeg(files[index]);
+			await uploadMediaBlob(questionIndex, jpeg, {
+				mediaType: MEDIA_TYPE.IMAGE,
+				extension: 'jpg',
+				contentType: 'image/jpeg'
+			});
+			renderQuestions();
+		}
+		toast('图片已上传');
+	} catch (error) {
+		alert('图片上传失败: ' + (error?.message || String(error)));
+	} finally {
+		ctx.uploadingMedia = false;
 	}
-	q.studentAnswer = result.url;
-	q.pictureUrl = result.url;
-	toast('已上传');
-	renderQuestions();
+}
+
+async function uploadSelectedAudio(questionIndex, file) {
+	if (ctx.uploadingMedia || !file) return;
+	ctx.uploadingMedia = true;
+	try {
+		const extension = String(file.name.split('.').pop() || '').toLowerCase();
+		if (extension !== 'mp3') throw new Error('原版作业音频使用 MP3，请选择 .mp3 文件');
+		toast('正在上传音频');
+		const durationTime = await readAudioDuration(file);
+		await uploadMediaBlob(questionIndex, file, {
+			mediaType: MEDIA_TYPE.AUDIO,
+			extension: 'mp3',
+			contentType: file.type || 'audio/mpeg',
+			durationTime
+		});
+		toast('音频已上传');
+		renderQuestions();
+	} catch (error) {
+		alert('音频上传失败: ' + (error?.message || String(error)));
+	} finally {
+		ctx.uploadingMedia = false;
+	}
+}
+
+async function removeMediaAnswer(questionIndex, mediaIndex) {
+	if (ctx.uploadingMedia) return;
+	const question = getCards()[questionIndex];
+	const media = question ? getQuestionMedia(question) : [];
+	const answer = media[mediaIndex];
+	if (!answer) return;
+
+	ctx.uploadingMedia = true;
+	try {
+		const answerId = String(answer.studentAnswerId || '');
+		if (answerId && answerId !== '-1' && answerId !== '-10001') {
+			const response = await window.electronAPI.removeCardAnswer({
+				answerId,
+				unitId: String(ctx.unitId)
+			});
+			if (!response || response.code !== 200) throw new Error(response?.msg || '删除失败');
+		}
+		media.splice(mediaIndex, 1);
+		syncQuestionMediaFields(question);
+		toast('已删除');
+		renderQuestions();
+	} catch (error) {
+		alert('删除答案失败: ' + (error?.message || String(error)));
+	} finally {
+		ctx.uploadingMedia = false;
+	}
+}
+
+$('#fileInput')?.addEventListener('change', async event => {
+	const files = Array.from(event.target.files || []);
+	await uploadSelectedImages(Number(ctx._uploadTarget), files);
+});
+
+$('#audioInput')?.addEventListener('change', async event => {
+	const file = event.target.files && event.target.files[0];
+	await uploadSelectedAudio(Number(ctx._uploadTarget), file);
 });
 
 function buildAnswerInfo() {
@@ -798,20 +1077,22 @@ function buildAnswerInfo() {
 				studentAnswerIds: '-10001'
 			});
 		} else if (isImageType(qt)) {
-			const picUrl = q.studentAnswer || q.pictureUrl || '';
-			if (!picUrl) continue;
+			const media = getQuestionMedia(q);
+			if (!media.length) continue;
+			const quesMaxNum = Math.max(Number(q.quesMaxNum) || 0, ...media.map(item => Number(item.quesNum) || 0));
 			info.push({
 				answer: '',
 				homeworkResourceId: f.homeworkResourceId,
 				orderNum: String(f.orderNum),
-				pictureStatus: '0',
-				quesMaxNum: 0,
-				quesNums: '',
+				pictureStatus: media.map(item => item.answerType).join(','),
+				quesMaxNum,
+				quesNums: media.map(item => item.quesNum || '').join(','),
 				questionId: String(f.questionId),
 				questionType: qt,
 				serialNumber: String(f.serialNumber),
-				studentAnswerIds: '-10001',
-				pictureUrl: picUrl
+				studentAnswerIds: media.map(item => item.studentAnswerId || '-1').join(','),
+				pictureUrl: media.map(item => item.url).join(','),
+				dzbList: media.map(item => item.bitId || '-1')
 			});
 		}
 	}
@@ -819,12 +1100,20 @@ function buildAnswerInfo() {
 }
 
 async function doSaveOnly() {
+	if (ctx.uploadingMedia) {
+		toast('请等待图片或音频上传完成');
+		return;
+	}
 	toast('保存中...');
 	const ok = await saveAllAnswers();
 	toast(ok ? '已保存' : '保存失败');
 	renderQuestions();
 }
 async function doSubmit() {
+	if (ctx.uploadingMedia) {
+		toast('请等待图片或音频上传完成');
+		return;
+	}
 	if (!confirm('确认提交作业？')) return;
 	toast('提交作业中...');
 

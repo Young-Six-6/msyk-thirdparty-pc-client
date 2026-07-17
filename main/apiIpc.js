@@ -299,7 +299,16 @@ function registerApiIpc(ipcMain, apiClient) {
   ipcMain.handle('hw:uploadSubjectPic', async (event, payload = {}) => {
     try {
       const result = await apiClient.uploadSubjectPic(payload);
-      return { code: 200, url: result.url };
+      return { code: 200, data: result, ...result };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:uploadHomeworkMedia', async (event, payload = {}) => {
+    try {
+      const result = await apiClient.uploadHomeworkMedia(payload);
+      return { code: 200, data: result };
     } catch (e) {
       return { code: 500, msg: e?.message || String(e) };
     }
@@ -309,6 +318,20 @@ function registerApiIpc(ipcMain, apiClient) {
     try {
       const { status, data, raw } = await apiClient.saveSubjectivesCardAnswer(payload);
       if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data, raw };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:removeCardAnswer', async (event, payload = {}) => {
+    try {
+      const { status, data, raw } = await apiClient.removeCardAnswer(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw };
+      const businessCode = String(data?.code ?? '');
+      if (businessCode && businessCode !== '10000') {
+        return { code: 500, msg: data?.message || data?.msg || `code=${businessCode}`, raw };
+      }
       return { code: 200, data, raw };
     } catch (e) {
       return { code: 500, msg: e?.message || String(e) };

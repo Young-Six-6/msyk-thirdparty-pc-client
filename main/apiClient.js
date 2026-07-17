@@ -3,6 +3,10 @@
 
 const crypto = require('crypto');
 
+const OSS_BUCKET = 'msyk';
+const OSS_ENDPOINT = 'oss-cn-shanghai.aliyuncs.com';
+const OSS_PUBLIC_BASE = 'https://msyk.wpstatic.cn/';
+
 // ====== 配置区 ======
 const DEFAULT_SECRET_KEY = 'DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S';
 
@@ -17,6 +21,57 @@ function md5Hex(s) {
 
 function nowSalt() {
   return String(Date.now());
+}
+
+function apiErrorMessage(data, fallback) {
+  if (!data || typeof data !== 'object') return fallback;
+  return data.message || data.msg || data.ErrorMessage || data.errorMessage || fallback;
+}
+
+function assertBusinessSuccess(response, action) {
+  if (!response || response.status !== 200) {
+    throw new Error(`${action} HTTP ${response?.status || 0}`);
+  }
+  if (!response.data || typeof response.data !== 'object') {
+    throw new Error(`${action}响应异常`);
+  }
+
+  const code = String(response.data.code ?? '');
+  if (code && code !== '10000') {
+    throw new Error(apiErrorMessage(response.data, `${action} code=${code}`));
+  }
+  return response.data;
+}
+
+function normalizeExtension(ext, mediaType) {
+  const value = String(ext || '').trim().toLowerCase().replace(/^\./, '');
+  if (mediaType === 0) return 'jpg';
+  if (mediaType === 1 && ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'webm'].includes(value)) return value;
+  if (mediaType === 1) return 'mp3';
+  throw new Error(`不支持的作业媒体类型: ${mediaType}`);
+}
+
+function createHomeworkObjectKey(extension) {
+  const timestamp = Date.now();
+  const objectName = `${crypto.randomUUID()}.${extension}`;
+  return `squirrel/android/worldwide/${timestamp}0/${objectName}`;
+}
+
+function createHomeworkBitId() {
+  return String(Date.now()).slice(-7);
+}
+
+function findMediaRegistration(data) {
+  const candidates = [data?.data, data?.result, data?.object, data?.InfoMap, data];
+  for (let item of candidates) {
+    if (typeof item === 'string') {
+      try { item = JSON.parse(item); } catch { continue; }
+    }
+    if (item && typeof item === 'object' && (
+      item.studentAnswerId !== undefined || item.uuid !== undefined || item.questionId !== undefined
+    )) return item;
+  }
+  return {};
 }
 
 // TreeMap(按 key 排序)取 value 拼接 + salt + sign + secret 再 md5
@@ -612,26 +667,44 @@ class ApiClient {
 
   // OSS 上传凭证  /ws/common/uploadController/getParams
   async getOssParams({ retry = '0' } = {}) {
-    const params = { retry: String(retry ?? '0') };
+    const retryValue = String(retry ?? '0');
+    const salt = nowSalt();
+    const params = {
+      retry: retryValue,
+      salt,
+      key: md5Hex(retryValue + salt + this.secretKey),
+    };
     const res = await requestForm({
       url: `${this.baseUrl}/ws/common/uploadController/getParams`,
       method: 'POST',
       form: params,
       headers: { 'user-agent': this.userAgent },
     });
+    const data = assertBusinessSuccess(res, '获取OSS凭证');
+    for (const field of ['AccessKeyId', 'AccessKeySecret', 'SecurityToken', 'Expiration']) {
+      if (!data[field]) throw new Error(`获取OSS凭证缺少 ${field}`);
+    }
     return res;
   }
 
   // OSS 直传（HMAC-SHA1签名）
   async uploadToOss({ base64, key, accessKeyId, accessKeySecret, securityToken, contentType }) {
-    const buf = Buffer.from(base64, 'base64');
-    const ct = contentType || 'image/jpeg';
+    const objectKey = String(key || '').replace(/^\/+/, '');
+    if (!objectKey || objectKey.includes('..')) throw new Error('OSS对象键无效');
+    if (!accessKeyId || !accessKeySecret || !securityToken) throw new Error('OSS临时凭证不完整');
+
+    const encoded = String(base64 || '').replace(/^data:[^;]+;base64,/, '');
+    const buf = Buffer.from(encoded, 'base64');
+    if (!buf.length) throw new Error('上传文件为空');
+
+    const ct = contentType || 'application/octet-stream';
     const contentMd5 = crypto.createHash('md5').update(buf).digest('base64');
     const dateStr = new Date().toUTCString();
-    const resource = '/' + String(key);
+    const resource = `/${OSS_BUCKET}/${objectKey}`;
     const stringToSign = 'PUT\n' + contentMd5 + '\n' + ct + '\n' + dateStr + '\nx-oss-security-token:' + securityToken + '\n' + resource;
     const signature = crypto.createHmac('sha1', accessKeySecret).update(stringToSign).digest('base64');
-    const url = 'https://msyk.oss-cn-shanghai.aliyuncs.com/' + key;
+    const encodedKey = objectKey.split('/').map(encodeURIComponent).join('/');
+    const url = `https://${OSS_BUCKET}.${OSS_ENDPOINT}/${encodedKey}`;
     const electronNet = require('electron').net;
     return await new Promise((resolve, reject) => {
       const req = electronNet.request({ method: 'PUT', url });
@@ -648,24 +721,81 @@ class ApiClient {
     });
   }
 
-  // 一站式上传图片：获取OSS凭证 → OSS直传 → saveSubjectivesCardAnswer
-  async uploadSubjectPic({ base64, ext, contentType, questionId, quesNum, homeworkId, studentId, modifyNum, unitId }) {
-    // 1. 获取 OSS STS 凭证
+  // 作业媒体：获取STS -> OSS直传 -> 登记媒体答案。
+  async uploadHomeworkMedia({
+    base64,
+    ext,
+    contentType,
+    mediaType = 0,
+    durationTime = '',
+    uuid = '',
+    bitId = '',
+    questionId,
+    quesNum,
+    homeworkId,
+    studentId,
+    modifyNum,
+    unitId,
+  } = {}) {
+    const type = Number(mediaType);
+    if (![0, 1].includes(type)) throw new Error('目前仅支持图片或音频答案');
+    if (!questionId) throw new Error('上传作业媒体缺少 questionId');
+
+    const extension = normalizeExtension(ext, type);
+    const answerUuid = String(uuid || crypto.randomUUID());
+    const answerBitId = String(bitId || createHomeworkBitId());
+    const key = createHomeworkObjectKey(extension);
+
     const ossRes = await this.getOssParams();
-    if (ossRes.status !== 200) throw new Error('获取OSS凭证失败');
-    const ossData = typeof ossRes.data === 'object' ? ossRes.data : JSON.parse(ossRes.raw);
-    const ts = Date.now();
-    const key = 'squirrel/android/worldwide/' + ts + '/' + ts + '.' + (ext || 'jpg');
+    const ossData = ossRes.data;
+    const uploadRes = await this.uploadToOss({
+      base64,
+      key,
+      accessKeyId: ossData.AccessKeyId,
+      accessKeySecret: ossData.AccessKeySecret,
+      securityToken: ossData.SecurityToken,
+      contentType: contentType || (type === 0 ? 'image/jpeg' : 'audio/mpeg'),
+    });
+    if (uploadRes.status < 200 || uploadRes.status >= 300) {
+      const detail = String(uploadRes.data || '').replace(/\s+/g, ' ').slice(0, 240);
+      throw new Error(`OSS上传失败 HTTP ${uploadRes.status}${detail ? `: ${detail}` : ''}`);
+    }
 
-    // 2. OSS 直传
-    const upRes = await this.uploadToOss({ base64, key, accessKeyId: ossData.AccessKeyId, accessKeySecret: ossData.AccessKeySecret, securityToken: ossData.SecurityToken, contentType: contentType || 'image/jpeg' });
-    if (upRes.status !== 200) throw new Error('OSS上传失败 status=' + upRes.status);
+    const url = OSS_PUBLIC_BASE + key;
+    const saveRes = await this.saveSubjectivesCardAnswer({
+      questionId,
+      quesNum,
+      picturUrl: url,
+      uuid: answerUuid,
+      studentId,
+      homeworkId,
+      unitId,
+      modifyNum,
+      pictureStatus: type,
+    });
+    const saveData = assertBusinessSuccess(saveRes, '登记作业媒体答案');
+    const registration = findMediaRegistration(saveData);
+    const studentAnswerId = registration.studentAnswerId ?? registration.answerId;
+    if (studentAnswerId === undefined || studentAnswerId === null || studentAnswerId === '') {
+      throw new Error('登记作业媒体答案成功但缺少 studentAnswerId');
+    }
 
-    // 3. saveSubjectivesCardAnswer
-    const picUrl = 'https://msyk.wpstatic.cn/' + key;
-    const svRes = await this.saveSubjectivesCardAnswer({ questionId, quesNum, picturUrl: picUrl, uuid: '', studentId, homeworkId, unitId, modifyNum, pictureStatus: 0 });
-    if (svRes.status !== 200) throw new Error('saveSubjectivesCardAnswer失败');
-    return { url: picUrl };
+    return {
+      url,
+      key,
+      uuid: String(registration.uuid || answerUuid),
+      questionId: String(registration.questionId || questionId),
+      studentAnswerId: String(studentAnswerId),
+      answerType: type,
+      bitId: answerBitId,
+      quesNum: String(quesNum ?? registration.quesNum ?? ''),
+      durationTime: String(durationTime || ''),
+    };
+  }
+
+  // 一站式上传图片：获取OSS凭证 → OSS直传 → saveSubjectivesCardAnswer
+  async uploadSubjectPic(payload = {}) {
+    return await this.uploadHomeworkMedia({ ...payload, mediaType: 0 });
   }
 
   // 主观题图片保存  ws/teacher/homeworkCard/saveSubjectivesCardAnswer
@@ -699,6 +829,19 @@ class ApiClient {
       pictureStatus: String(pictureStatus ?? 0),
     };
     return await this.postSigned('/ws/teacher/homeworkCard/saveSubjectivesCardAnswer', params);
+  }
+
+  async removeCardAnswer({ answerId, unitId } = {}) {
+    const uid = unitId || this.session.unitId;
+    if (!answerId || String(answerId) === '-1' || String(answerId) === '-10001') {
+      throw new Error('删除作业媒体缺少有效 answerId');
+    }
+    if (!uid) throw new Error('删除作业媒体缺少 unitId');
+
+    return await this.postSigned('/ws/teacher/homeworkCard/studentRemoveAnswer', {
+      answerId: String(answerId),
+      unitId: String(uid),
+    });
   }
 
   // 阅读材料：单题用时提交  ws/student/homework/studentHomework/readHomeworksubmitTime

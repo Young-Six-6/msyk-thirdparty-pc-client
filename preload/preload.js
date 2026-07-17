@@ -53,10 +53,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveCardAnswer: (payload) => ipcRenderer.invoke('hw:saveCardAnswer', payload),
   saveCardAnswerObjectives: (payload) => ipcRenderer.invoke('hw:saveCardAnswerObjectives', payload),
   addStudentExplainSign: (payload) => ipcRenderer.invoke('hw:addStudentExplainSign', payload),
-  getOssParams: () => ipcRenderer.invoke('hw:getOssParams'),
-  uploadToOss: (payload) => ipcRenderer.invoke('hw:uploadToOss', payload),
   uploadSubjectPic: (payload) => ipcRenderer.invoke('hw:uploadSubjectPic', payload),
-  saveSubjectivesCardAnswer: (payload) => ipcRenderer.invoke('hw:saveSubjectivesCardAnswer', payload),
+  uploadHomeworkMedia: (payload) => ipcRenderer.invoke('hw:uploadHomeworkMedia', payload),
+  removeCardAnswer: (payload) => ipcRenderer.invoke('hw:removeCardAnswer', payload),
 
   // ===== 阅读材料 =====
   submitReadTime: (payload) => ipcRenderer.invoke('hw:submitReadTime', payload),

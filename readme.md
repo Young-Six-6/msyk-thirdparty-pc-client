@@ -8,6 +8,7 @@
 ## Features
 现已支持提交作业，查看作业  
 可以在开发者模式下自定义作答时间  
+在调试模式下允许获取正确答案  
 
 ## Pic  
 <img src="./pics/login.png" width = "300" height = "200" alt="login" />
