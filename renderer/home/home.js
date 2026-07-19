@@ -7,7 +7,12 @@ const $ = (s) => document.querySelector(s);
   const s = sessionResponse?.data || sessionResponse || {};
 
   $('#hello').textContent = s?.realName ? `你好，${s.realName}` : '你好';
-  $('#sub').textContent = s?.schoolId ? `学校：${s.schoolId}  |  班级：${s.unitId}` : '';
+  const schoolName = String(s?.schoolName || '').trim();
+  const className = String(s?.className || s?.groupName || '').trim();
+  const identityParts = [];
+  if (schoolName) identityParts.push(`学校：${schoolName}`);
+  if (className) identityParts.push(`班级：${className}`);
+  $('#sub').textContent = identityParts.join('  |  ');
   if (s?.avatarUrl) $('#avatar').src = s.avatarUrl;
   else $('#avatar').src = 'https://msyk.wpstatic.cn/squirrel/img_student_profile_male.png';
 

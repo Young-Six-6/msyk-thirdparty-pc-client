@@ -319,8 +319,14 @@ body[data-page] select {
   body[data-page="homework"] .pager {
     flex: 0 0 auto;
     position: static;
-    padding: 8px calc(12px + var(--safe-right)) calc(8px + var(--safe-bottom))
+    padding: 8px calc(12px + var(--safe-right)) 8px
       calc(12px + var(--safe-left));
+  }
+
+  body[data-page="homework"] .tabbar {
+    z-index: 20;
+    padding: 8px calc(10px + var(--safe-right)) calc(8px + var(--safe-bottom))
+      calc(10px + var(--safe-left));
   }
 }
 

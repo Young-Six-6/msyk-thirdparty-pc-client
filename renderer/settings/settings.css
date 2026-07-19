@@ -40,8 +40,8 @@ body{
 }
 .btn.ghost:active{
   transform:translateY(1px);
-  background:rgba(0,194,255,.10);
-  border-color:rgba(0,194,255,.35);
+  background:color-mix(in srgb,var(--accent) 10%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 35%,transparent);
 }
 
 .app-body{
@@ -117,11 +117,97 @@ body{
 }
 
 .switch.on{
-  background:rgba(0,194,255,.22);
-  border-color:rgba(0,194,255,.55);
+  background:color-mix(in srgb,var(--accent) 22%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 55%,transparent);
 }
 
 .switch.on .switch-dot{
   transform:translateX(18px);
   background:var(--accent);
 }
+
+body[data-page="settings"] .row.color-setting{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:12px;
+  min-height:0;
+}
+
+.color-setting-head,
+.color-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+}
+
+.color-setting-head .v{
+  color:var(--muted);
+  text-align:right;
+}
+
+.color-palette{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  width:100%;
+}
+
+.color-swatch{
+  width:36px;
+  height:36px;
+  min-width:36px;
+  padding:0;
+  border-radius:50%;
+  border:2px solid color-mix(in srgb,var(--text) 18%,transparent);
+  background:var(--swatch-dark);
+  cursor:pointer;
+  transition:transform .14s,border-color .14s,box-shadow .14s;
+}
+
+:root[data-theme="light"] .color-swatch{
+  background:var(--swatch-light);
+}
+
+.color-swatch:hover{transform:scale(1.06)}
+.color-swatch.selected{
+  border-color:var(--text);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent);
+}
+.color-swatch:focus-visible{
+  outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);
+  outline-offset:2px;
+}
+
+.custom-color{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  color:var(--text);
+  cursor:pointer;
+}
+
+.custom-color input[type="color"]{
+  width:36px;
+  height:36px;
+  padding:2px;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:var(--panel2);
+  cursor:pointer;
+}
+.custom-color input[type="color"]::-webkit-color-swatch-wrapper{padding:2px}
+.custom-color input[type="color"]::-webkit-color-swatch{border:0;border-radius:50%}
+
+.reset-color{
+  min-height:36px;
+  padding:7px 10px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:transparent;
+  color:var(--text);
+  cursor:pointer;
+}
+.reset-color:disabled{opacity:.45;cursor:default}

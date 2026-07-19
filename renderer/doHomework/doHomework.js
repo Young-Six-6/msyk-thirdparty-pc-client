@@ -667,9 +667,7 @@ function encodeMultiChoice(letters) {
 }
 
 function encodeFillBlank(v) {
-	const s = String(v || '');
-	if (/^\[/.test(s)) return s;
-	return '["' + s.replace(/"/g, '\\"') + '"]';
+	return JSON.stringify(parseAnswerArray(v));
 }
 
 async function saveAllAnswers() {
@@ -868,7 +866,13 @@ function renderObjInput(q, f) {
 	}
 	if (qt === QT.TIANKONG) {
 		const values = parseAnswerArray(existing);
-		if (!values.length) values.push('');
+		const blankCount = Math.max(
+			1,
+			Number(q.blankNum || 0),
+			Array.isArray(q.blankList) ? q.blankList.length : 0,
+			values.length,
+		);
+		while (values.length < blankCount) values.push('');
 		return '<div class="tiankongRow" data-sn="' + sn + '">' + values.map((value, index) =>
 			'<input type="text" class="tkInput" placeholder="第 ' + (index + 1) + ' 空" value="' + esc(value) + '" data-sn="' + sn + '" data-blank-index="' + index + '">'
 		).join('') + '</div>';
@@ -940,7 +944,7 @@ function renderQuestions() {
 	list.querySelectorAll('.tkInput').forEach(inp => inp.addEventListener('input', () => {
 		const row = inp.closest('.tiankongRow');
 		const values = Array.from(row.querySelectorAll('.tkInput')).map(item => item.value);
-		setAnswer(inp.dataset.sn, values.length > 1 ? JSON.stringify(values) : values[0]);
+		setAnswer(inp.dataset.sn, JSON.stringify(values));
 		refreshDirtyMark(inp.dataset.sn);
 	}));
 	const ac = list.querySelector('.qCard.active');

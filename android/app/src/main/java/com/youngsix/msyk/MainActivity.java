@@ -224,11 +224,22 @@ public final class MainActivity extends Activity {
         settings.setUserAgentString(settings.getUserAgentString()
                 + " MSYK-Android/" + BuildConfig.VERSION_NAME);
         CookieManager.getInstance().setAcceptThirdPartyCookies(inlineViewer, true);
-        inlineViewer.setBackgroundColor(Color.TRANSPARENT);
+        inlineViewer.setBackgroundColor(Color.parseColor("#0F1226"));
         inlineViewer.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                if (!url.equals(inlineViewerUrl)) return;
+                if ("dark".equalsIgnoreCase(inlineViewerTheme)) view.setVisibility(View.INVISIBLE);
+            }
+
+            @Override
+            public void onPageCommitVisible(WebView view, String url) {
+                revealInlineViewerAfterTheme(url);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
-                applyInlineViewerTheme();
+                revealInlineViewerAfterTheme(url);
                 view.postDelayed(() -> {
                     if (url.equals(inlineViewerUrl)) applyInlineViewerTheme();
                 }, 500);
@@ -258,16 +269,21 @@ public final class MainActivity extends Activity {
         params.leftMargin = left;
         params.topMargin = top;
         inlineViewer.setLayoutParams(params);
-        inlineViewer.setVisibility(View.VISIBLE);
 
         String theme = request.optString("theme", "dark");
         boolean themeChanged = !theme.equals(inlineViewerTheme);
         inlineViewerTheme = theme;
+        boolean dark = "dark".equalsIgnoreCase(theme);
+        inlineViewer.setBackgroundColor(Color.parseColor(dark ? "#0F1226" : "#FFFFFF"));
         if (!url.equals(inlineViewerUrl)) {
             inlineViewerUrl = url;
+            inlineViewer.setVisibility(dark ? View.INVISIBLE : View.VISIBLE);
             inlineViewer.loadUrl(url);
         } else if (themeChanged) {
-            applyInlineViewerTheme();
+            if (dark) inlineViewer.setVisibility(View.INVISIBLE);
+            applyInlineViewerTheme(() -> inlineViewer.setVisibility(View.VISIBLE));
+        } else {
+            inlineViewer.setVisibility(View.VISIBLE);
         }
     }
 
@@ -279,8 +295,19 @@ public final class MainActivity extends Activity {
         inlineViewerUrl = "";
     }
 
+    private void revealInlineViewerAfterTheme(String url) {
+        if (!url.equals(inlineViewerUrl)) return;
+        applyInlineViewerTheme(() -> {
+            if (url.equals(inlineViewerUrl)) inlineViewer.setVisibility(View.VISIBLE);
+        });
+    }
+
     private void applyInlineViewerTheme() {
-        if (inlineViewer == null || inlineViewer.getVisibility() != View.VISIBLE) return;
+        applyInlineViewerTheme(null);
+    }
+
+    private void applyInlineViewerTheme(@Nullable Runnable completion) {
+        if (inlineViewer == null || inlineViewer.getVisibility() == View.GONE) return;
         String css = "light".equalsIgnoreCase(inlineViewerTheme) ? "" :
                 "html,body{background:#0f1226!important;color:#eaf2ff!important;}"
                 + "*{color:inherit!important;background-color:transparent!important;"
@@ -295,7 +322,9 @@ public final class MainActivity extends Activity {
                 + "if(!s){s=document.createElement('style');s.id='__msyk_theme';document.head.appendChild(s);}"
                 + "s.textContent=" + JSONObject.quote(css) + ";"
                 + "document.documentElement.style.colorScheme=" + JSONObject.quote(inlineViewerTheme) + ";})()";
-        inlineViewer.evaluateJavascript(script, null);
+        inlineViewer.evaluateJavascript(script, value -> {
+            if (completion != null) completion.run();
+        });
     }
 
     @Override

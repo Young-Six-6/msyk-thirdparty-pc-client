@@ -201,7 +201,7 @@ body{
   font-weight:500;
   padding:2px 6px;
   border-radius:6px;
-  background:rgba(59,130,246,.15);
+  background:color-mix(in srgb,var(--primary) 15%,transparent);
   color:var(--primary);
   vertical-align:middle;
 }
@@ -233,7 +233,7 @@ body{
 .optLabel:hover{ background:rgba(255,255,255,.04); }
 .optLabel:has(input:checked){
   border-color:var(--primary);
-  background:rgba(59,130,246,.12);
+  background:color-mix(in srgb,var(--primary) 12%,transparent);
 }
 
 .optLabel input[type="radio"],
@@ -345,7 +345,7 @@ body{
 
 .qCard.active{
   border-color:var(--primary);
-  background:rgba(59,130,246,.08);
+  background:color-mix(in srgb,var(--primary) 8%,transparent);
 }
 
 .actions{
@@ -465,8 +465,8 @@ body{
 }
 
 .debugAnswerSwitch input:checked + .debugAnswerSwitchUi{
-  background:rgba(59,130,246,.22);
-  border-color:rgba(59,130,246,.55);
+  background:color-mix(in srgb,var(--primary) 22%,transparent);
+  border-color:color-mix(in srgb,var(--primary) 55%,transparent);
 }
 
 .debugAnswerSwitch input:checked + .debugAnswerSwitchUi::after{

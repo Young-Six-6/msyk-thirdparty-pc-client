@@ -196,6 +196,17 @@ final class MsykApiClient {
                 .put("studentId", studentId)
                 .put("unitId", unitId)
                 .put("schoolId", firstNonEmpty(data.optString("schoolId", ""), unitId))
+                .put("schoolName", firstNonEmpty(
+                        info.optString("schoolName", ""),
+                        data.optString("schoolName", ""),
+                        nested == null ? "" : nested.optString("schoolName", "")))
+                .put("className", firstNonEmpty(
+                        info.optString("groupName", ""),
+                        info.optString("className", ""),
+                        data.optString("groupName", ""),
+                        data.optString("className", ""),
+                        nested == null ? "" : nested.optString("groupName", ""),
+                        nested == null ? "" : nested.optString("className", "")))
                 .put("ip", data.optString("ip", ""))
                 .put("userName", firstNonEmpty(info.optString("userName", ""), userName))
                 .put("realName", firstNonEmpty(info.optString("realName", ""), data.optString("realName", "")))

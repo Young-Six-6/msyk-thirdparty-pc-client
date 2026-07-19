@@ -9,8 +9,17 @@ const $ = (s) => document.querySelector(s);
   $('#realName').textContent = s?.realName || '--';
   $('#userName').textContent = s?.userName || '--';
   $('#studentId').textContent = s?.studentId || '--';
-  $('#schoolId').textContent = s?.schoolId || '--';
-  $('#unitId').textContent = s?.unitId || '--';
+
+  const optionalNames = [
+    ['#schoolRow', '#schoolName', s?.schoolName],
+    ['#classRow', '#className', s?.className || s?.groupName],
+  ];
+  optionalNames.forEach(([rowSelector, valueSelector, rawValue]) => {
+    const value = String(rawValue || '').trim();
+    const row = $(rowSelector);
+    if (row) row.hidden = !value;
+    if (value) $(valueSelector).textContent = value;
+  });
 
   const pre = $('#session');
   const debugPanel = document.querySelector('.debug');

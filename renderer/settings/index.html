@@ -29,9 +29,24 @@
         </span>
       </div>
 
+      <div class="row color-setting">
+        <div class="color-setting-head">
+          <span class="k">主题色</span>
+          <span class="v" id="accentText">默认</span>
+        </div>
+        <div id="accentPalette" class="color-palette" role="radiogroup" aria-label="主题色预设"></div>
+        <div class="color-actions">
+          <label class="custom-color" for="customAccent">
+            <input id="customAccent" type="color" aria-label="自定义主题色">
+            <span>自定义</span>
+          </label>
+          <button id="resetAccent" class="reset-color" type="button">恢复默认</button>
+        </div>
+      </div>
+
       <div class="row">
         <span class="k">版本</span>
-        <span class="v">v1.2.2</span>
+        <span class="v">v1.3.0</span>
       </div>
     </div>
 
@@ -50,7 +65,7 @@
   </div>
 </body>
 <script src="../common/theme.js"></script>
-<script src="../common/native-android.js?v=1.2.2"></script>
-<script src="../common/platform.js?v=1.2.2"></script>
+<script src="../common/native-android.js?v=1.3.0"></script>
+<script src="../common/platform.js?v=1.3.0"></script>
 <script src="./settings.js"></script>
 </html>

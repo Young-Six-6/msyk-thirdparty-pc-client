@@ -200,6 +200,8 @@ class ApiClient {
       studentId: '',
       unitId: '',
       schoolId: '',
+      schoolName: '',
+      className: '',
       ip: '',
       userName: '',
       realName: '',
@@ -213,6 +215,8 @@ class ApiClient {
         studentId: '',
         unitId: '',
         schoolId: '',
+        schoolName: '',
+        className: '',
         ip: '',
         userName: '',
         realName: '',
@@ -293,6 +297,16 @@ class ApiClient {
       '';
 
     const schoolId = data.schoolId || data.data?.schoolId || unitId || '';
+    const schoolName =
+      info.schoolName || data.schoolName || data.data?.schoolName || '';
+    const className =
+      info.groupName ||
+      info.className ||
+      data.groupName ||
+      data.className ||
+      data.data?.groupName ||
+      data.data?.className ||
+      '';
     const ip = data.ip || data.data?.ip || '';
     const realName = info.realName || data.realName || data.data?.realName || '';
     const userNameOut = info.userName || data.userName || data.data?.userName || userName;
@@ -302,6 +316,8 @@ class ApiClient {
       studentId,
       unitId,
       schoolId,
+      schoolName,
+      className,
       ip,
       userName: userNameOut,
       realName,

@@ -3,8 +3,13 @@ window.Theme?.initTheme();
 const pageParams = new URLSearchParams(location.search);
 const listFrom = pageParams.get('from') === 'me' ? 'me' : 'home';
 
-document.querySelector('#backBtn')?.addEventListener('click', () => {
-  location.replace(listFrom === 'me' ? '../me/index.html' : '../home/index.html');
+document.querySelector('.homework-nav')?.addEventListener('click', (event) => {
+  const button = event.target.closest('.nav-tab');
+  if (!button || button.classList.contains('active')) return;
+
+  const target = button.dataset.go;
+  if (target === 'home') location.replace('../home/index.html');
+  if (target === 'me') location.replace('../me/index.html?from=homework');
 });
 
 const $ = (s) => document.querySelector(s);
