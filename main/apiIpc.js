@@ -1,5 +1,5 @@
 // main/apiIpc.js
-const { safeStorage } = require('electron');
+const { safeStorage, shell } = require('electron');
 const { readStore, writeStore } = require('./store');
 
 function encryptSavedPassword(password) {
@@ -17,6 +17,17 @@ function decryptSavedPassword(encryptedPassword) {
 }
 
 function registerApiIpc(ipcMain, apiClient) {
+  ipcMain.handle('app:openExternal', async (event, value = '') => {
+    try {
+      const url = new URL(String(value || '').trim());
+      if (url.protocol !== 'https:') throw new Error('仅允许打开 HTTPS 链接');
+      await shell.openExternal(url.toString());
+      return { code: 200 };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
   ipcMain.handle('debug:get', () => !!readStore().debugMode);
   ipcMain.handle('debug:set', (event, enabled) => {
     const debugMode = !!enabled;

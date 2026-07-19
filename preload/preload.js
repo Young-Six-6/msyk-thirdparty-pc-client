@@ -25,6 +25,8 @@ ipcRenderer.invoke('debug:set', getDebugMode()).catch(() => {});
 
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
+
   // ===== auth/session =====
   apiLogin: (payload) => ipcRenderer.invoke('api:login', payload),
   apiGetSession: () => ipcRenderer.invoke('api:getSession'),

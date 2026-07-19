@@ -386,6 +386,7 @@
   }
 
   const api = {
+    openExternal: (url) => invoke('openExternal', { url }),
     apiLogin: (payload) => invoke('apiLogin', payload),
     apiGetSession: () => invoke('apiGetSession'),
     apiLogout: () => invoke('apiLogout'),

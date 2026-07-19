@@ -1,7 +1,9 @@
 package com.youngsix.msyk;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.util.Base64;
 
 import org.json.JSONArray;
@@ -46,10 +48,12 @@ final class MsykApiClient {
 
     private final SharedPreferences preferences;
     private final SecureLoginStore secureLoginStore;
+    private final Context context;
     private final Map<String, PendingUpload> pendingUploads = new LinkedHashMap<>();
     private JSONObject session;
 
     MsykApiClient(Context context) {
+        this.context = context;
         preferences = context.getSharedPreferences("msyk_native", Context.MODE_PRIVATE);
         secureLoginStore = new SecureLoginStore(context);
         session = parseObject(preferences.getString("session", ""));
@@ -64,6 +68,8 @@ final class MsykApiClient {
 
     Object invoke(String method, JSONObject payload) throws Exception {
         switch (method) {
+            case "openExternal":
+                return openExternal(payload);
             case "apiLogin":
                 return login(payload);
             case "apiGetSession":
@@ -140,6 +146,16 @@ final class MsykApiClient {
             default:
                 return failure(404, "Android API 未实现: " + method);
         }
+    }
+
+    private JSONObject openExternal(JSONObject payload) throws Exception {
+        String value = required(payload, "url").trim();
+        Uri uri = Uri.parse(value);
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) {
+            throw new IllegalArgumentException("仅允许打开 HTTPS 链接");
+        }
+        context.startActivity(new Intent(Intent.ACTION_VIEW, uri));
+        return ok(null);
     }
 
     private JSONObject login(JSONObject payload) throws Exception {

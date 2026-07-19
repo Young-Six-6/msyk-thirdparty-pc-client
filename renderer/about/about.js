@@ -18,8 +18,30 @@ $("#backBtn")?.addEventListener("click", () => {
     location.replace("../me/index.html");
 });
 
-$("#checkUpdate")?.addEventListener("click", () => {
+$("#checkUpdate")?.addEventListener("click", async () => {
+    const button = $("#checkUpdate");
+    const label = button?.querySelector("span");
+    const releaseUrl = "https://github.com/Young-Six-6/msyk-thirdparty-pc-client/releases/latest";
+    const originalText = label?.textContent || "检查更新";
 
-    alert("https://github.com/Young-Six-6/msyk-thirdparty-pc-client");
+    if (button) button.disabled = true;
+    if (label) label.textContent = "正在打开...";
 
+    try {
+        if (typeof window.msykAPI?.openExternal === "function") {
+            const response = await window.msykAPI.openExternal(releaseUrl);
+            if (!response || response.code !== 200) {
+                throw new Error(response?.msg || "无法打开浏览器");
+            }
+            return;
+        }
+
+        const opened = window.open(releaseUrl, "_blank", "noopener,noreferrer");
+        if (!opened) location.href = releaseUrl;
+    } catch (error) {
+        alert(`打开更新页面失败：${error?.message || error}`);
+    } finally {
+        if (button) button.disabled = false;
+        if (label) label.textContent = originalText;
+    }
 });
