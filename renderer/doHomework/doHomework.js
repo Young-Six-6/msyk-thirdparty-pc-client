@@ -167,8 +167,7 @@ function toast(msg, duration = 1800) {
 }
 
 $('#backBtn')?.addEventListener('click', () => {
-	const from = qs().from === 'me' ? 'me' : 'home';
-	location.replace('../homework/index.html?from=' + from);
+	location.replace('../main/index.html?page=homework');
 });
 
 const ctx = {
@@ -1414,8 +1413,7 @@ async function doSubmit() {
 
 	toast('提交成功');
 	clearLocalDraft();
-	const from = qs().from === 'me' ? 'me' : 'home';
-	setTimeout(() => location.replace('../homework/index.html?from=' + from), 600);
+	setTimeout(() => location.replace('../main/index.html?page=homework'), 600);
 }
 
 

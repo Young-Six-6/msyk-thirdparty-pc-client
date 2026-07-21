@@ -111,6 +111,36 @@ function registerApiIpc(ipcMain, apiClient) {
     }
   });
 
+  ipcMain.handle('score:homeworkTrend', async (event, payload = {}) => {
+    try {
+      const { status, data } = await apiClient.getStudentScoreGraph(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('score:homeworkList', async (event, payload = {}) => {
+    try {
+      const { status, data } = await apiClient.getStudentScoreList(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('score:testList', async (event, payload = {}) => {
+    try {
+      const { status, data } = await apiClient.getStudentTestScores(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
   ipcMain.handle('hw:list', async (event, payload = {}) => {
     try {
       const {

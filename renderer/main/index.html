@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+  <title>没师有课</title>
+  <link rel="stylesheet" href="../common/theme.css">
+  <link rel="stylesheet" href="./main.css?v=1.3.0">
+  <script src="../common/theme.js"></script>
+  <script>window.Theme?.initTheme();</script>
+  <script defer src="../common/native-android.js?v=1.3.0"></script>
+  <script defer src="../common/platform.js?v=1.3.0"></script>
+  <script defer src="./main.js?v=1.3.0"></script>
+</head>
+<body data-page="main">
+  <main class="primary-viewport">
+    <div class="primary-track" id="primaryTrack">
+      <iframe data-primary-page="home" data-src="../home/index.html?embedded=1" title="主页"></iframe>
+      <iframe data-primary-page="homework" data-src="../homework/index.html?embedded=1" title="作业"></iframe>
+      <iframe data-primary-page="score" data-src="../score/index.html?embedded=1" title="成绩"></iframe>
+      <iframe data-primary-page="me" data-src="../me/index.html?embedded=1" title="我的"></iframe>
+    </div>
+  </main>
+
+  <nav class="primary-tabbar" id="primaryTabbar" aria-label="主导航">
+    <button class="primary-tab active" data-go="home" aria-current="page">主页</button>
+    <button class="primary-tab" data-go="homework">作业</button>
+    <button class="primary-tab" data-go="score">成绩</button>
+    <button class="primary-tab" data-go="me">我的</button>
+  </nav>
+</body>
+</html>

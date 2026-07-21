@@ -74,6 +74,7 @@
     const resIds = [];       // 对应每题的 resourceId（阅读模式）
     let currentIdx = 0;
     let isReadMode = false;  // 是否为阅读材料模式
+    let readOnly = false;    // 非新作业只查看，不计时、不提交
     let homeworkId = '';
     let modifyNum = 0;
     let listFrom = 'home';
@@ -127,6 +128,7 @@
       const p = new URLSearchParams(location.search);
 
       isReadMode = p.get('isRead') === '1';
+      readOnly = isReadMode && p.get('readOnly') === '1';
       homeworkId = p.get('homeworkId') || '';
       modifyNum = Number(p.get('modifyNum') || 0);
       listFrom = p.get('from') === 'me' ? 'me' : 'home';
@@ -170,7 +172,7 @@
 
     /* ====== 导航 ====== */
     async function reportCurrentQTime() {
-      if (!isReadMode) return;
+      if (!isReadMode || readOnly) return;
       if (!perQStartTime) return;
       const used = String(Date.now() - perQStartTime);
       const resId = resIds[currentIdx];
@@ -210,7 +212,7 @@
         detailModesEnabled ? `${modeTitle} ${currentIdx + 1}` : `作业材料 ${currentIdx + 1}`,
         currentDetailMode === 'card' ? 'web' : '',
       );
-      perQStartTime = Date.now();
+      if (!readOnly) perQStartTime = Date.now();
       updateNav();
     }
 
@@ -280,6 +282,11 @@
       if (!isReadMode) return;
 
       titleEl.textContent = '阅读材料';
+      if (readOnly) {
+        timerEl.style.display = 'none';
+        submitBtn.style.display = 'none';
+        return;
+      }
       submitBtn.style.display = '';
       startTime = Date.now();
       perQStartTime = startTime;
@@ -294,6 +301,7 @@
     }
 
     async function doSubmitRead() {
+      if (readOnly) return;
       if (!confirm('确认提交阅读？提交后将无法继续阅读。')) return;
 
       try {
@@ -326,7 +334,7 @@
 
         toast('提交成功');
         setTimeout(() => {
-          location.replace(`../homework/index.html?from=${listFrom}`);
+          location.replace('../main/index.html?page=homework');
         }, 600);
       } catch (e) {
         console.error('[homeworkDetail] doSubmitRead 异常:', e);
@@ -430,7 +438,7 @@
     async function goBack() {
       // 阅读模式：先报当前题用时
       await reportCurrentQTime();
-      location.replace(`../homework/index.html?from=${listFrom}`);
+      location.replace('../main/index.html?page=homework');
     }
 
     document.getElementById('backBtn').addEventListener('click', goBack);

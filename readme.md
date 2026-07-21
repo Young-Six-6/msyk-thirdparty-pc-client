@@ -30,7 +30,7 @@
 
 
 ## Documents
-软件本体都没完善怎么写文档
+[开发者快速上手指南](./quickGuide.md)
 
 ## Bugs
 很正常，开issue就行，想要新功能也可以提

@@ -44,6 +44,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   hwStatus: (payload) => ipcRenderer.invoke('hw:status', payload),
   hwPptInfo: (payload) => ipcRenderer.invoke('hw:pptInfo', payload),
 
+  // ===== student scores =====
+  scoreHomeworkTrend: (payload) => ipcRenderer.invoke('score:homeworkTrend', payload),
+  scoreHomeworkList: (payload) => ipcRenderer.invoke('score:homeworkList', payload),
+  scoreTestList: (payload) => ipcRenderer.invoke('score:testList', payload),
+
   // ===== do homework (API flow) =====
   checkHomeworkEndTime: (payload) => ipcRenderer.invoke('hw:checkHomeworkEndTime', payload),
   getHomeworkCardInfo: (payload) => ipcRenderer.invoke('hw:getHomeworkCardInfo', payload),

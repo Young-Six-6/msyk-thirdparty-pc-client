@@ -1,6 +1,9 @@
 (function initAndroidNativeApi(root) {
   'use strict';
 
+  // Embedded primary pages use the main frame's allowlisted API proxy.
+  if (root.parent !== root) return;
+
   const bridge = root.MSYK_ANDROID;
   if (!bridge || typeof bridge.postMessage !== 'function') return;
   const viewerBridge = root.MSYK_VIEWER;
@@ -398,6 +401,9 @@
     hwCardPreviewUrl: (payload) => invoke('hwCardPreviewUrl', payload),
     hwStatus: (payload) => invoke('hwStatus', payload),
     hwPptInfo: (payload) => invoke('hwPptInfo', payload),
+    scoreHomeworkTrend: (payload) => invoke('scoreHomeworkTrend', payload),
+    scoreHomeworkList: (payload) => invoke('scoreHomeworkList', payload),
+    scoreTestList: (payload) => invoke('scoreTestList', payload),
     checkHomeworkEndTime: (payload) => invoke('checkHomeworkEndTime', payload),
     getHomeworkCardInfo: (payload) => invoke('getHomeworkCardInfo', payload),
     getCorrectAnswers: (payload) => invoke('getCorrectAnswers', payload),

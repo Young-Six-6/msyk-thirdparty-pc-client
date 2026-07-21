@@ -98,6 +98,12 @@ final class MsykApiClient {
                         "unitId", requireSession("unitId"))));
             case "hwList":
                 return homeworkList(payload);
+            case "scoreHomeworkTrend":
+                return studentScoreGraph(payload);
+            case "scoreHomeworkList":
+                return studentScoreList(payload);
+            case "scoreTestList":
+                return studentTestScoreList(payload);
             case "hwStatus":
                 return homeworkStatus(payload);
             case "hwPptInfo":
@@ -216,6 +222,13 @@ final class MsykApiClient {
                         info.optString("schoolName", ""),
                         data.optString("schoolName", ""),
                         nested == null ? "" : nested.optString("schoolName", "")))
+                .put("classId", firstNonEmpty(
+                        info.optString("classId", ""),
+                        info.optString("groupId", ""),
+                        data.optString("classId", ""),
+                        data.optString("groupId", ""),
+                        nested == null ? "" : nested.optString("classId", ""),
+                        nested == null ? "" : nested.optString("groupId", "")))
                 .put("className", firstNonEmpty(
                         info.optString("groupName", ""),
                         info.optString("className", ""),
@@ -245,6 +258,48 @@ final class MsykApiClient {
                 "unitId", requireSession("unitId"),
                 "startTime", value(payload, "startTime", "0"),
                 "endTime", value(payload, "endTime", "0"))));
+    }
+
+    private JSONObject studentScoreGraph(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/teacher/scoreAnalysis/singleStuScoreGraph", params(
+                "subjectCode", value(payload, "subjectCode", ""),
+                "groupId", scoreGroupId(payload),
+                "stuId", value(payload, "studentId", requireSession("studentId")),
+                "teacherId", value(payload, "teacherId", ""),
+                "startTime", value(payload, "startTime", ""),
+                "endTime", value(payload, "endTime", ""),
+                "rows", value(payload, "rows", "18"),
+                "pageIndex", value(payload, "pageIndex", "1"),
+                "unitId", value(payload, "unitId", requireSession("unitId")))));
+    }
+
+    private JSONObject studentScoreList(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/scoreAnalysis/transcript/transcriptlist", params(
+                "subjectCode", value(payload, "subjectCode", ""),
+                "studentId", value(payload, "studentId", requireSession("studentId")),
+                "pagIndex", value(payload, "pageIndex", "1"),
+                "pageSize", value(payload, "pageSize", "18"),
+                "groupId", scoreGroupId(payload),
+                "unitId", value(payload, "unitId", requireSession("unitId")))));
+    }
+
+    private JSONObject studentTestScoreList(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/onlineTest/doOnlineTest/showStudentTest", params(
+                "subjectCode", value(payload, "subjectCode", ""),
+                "userId", value(payload, "userId", requireSession("studentId")),
+                "pageIndex", value(payload, "pageIndex", "1"),
+                "pageSize", value(payload, "pageSize", "20"))));
+    }
+
+    private String scoreGroupId(JSONObject payload) {
+        String groupId = firstNonEmpty(
+                payload.optString("groupId", ""),
+                sessionValue("classId"),
+                sessionValue("groupId"));
+        if (groupId.isEmpty()) {
+            throw new IllegalStateException("成绩接口缺少 groupId，请重新登录");
+        }
+        return groupId;
     }
 
     private JSONObject homeworkStatus(JSONObject payload) throws Exception {

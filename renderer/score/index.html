@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+  <title>成绩</title>
+  <link rel="stylesheet" href="../common/theme.css">
+  <link rel="stylesheet" href="./score.css?v=1.3.0">
+  <link rel="stylesheet" href="../common/page-transition.css?v=1.3.0">
+  <script src="../common/page-transition.js?v=1.3.0"></script>
+</head>
+<body data-page="score">
+  <header class="score-topbar">
+    <h1>成绩</h1>
+    <div class="topbar-actions">
+      <label class="subject-field">
+        <span>科目</span>
+        <select id="subjectSelect" aria-label="选择科目" disabled>
+          <option value="">加载中...</option>
+        </select>
+      </label>
+      <button class="icon-button" id="refreshBtn" type="button" title="刷新" aria-label="刷新成绩">↻</button>
+    </div>
+  </header>
+
+  <div class="score-tabs" id="scoreTabs" role="tablist" aria-label="成绩类型">
+    <button class="score-tab active" type="button" role="tab" aria-selected="true" aria-controls="homeworkPanel" data-mode="homework">作业成绩</button>
+    <button class="score-tab" type="button" role="tab" aria-selected="false" aria-controls="testPanel" data-mode="test">考试成绩</button>
+  </div>
+
+  <main class="score-content" id="scoreContent">
+    <div class="page-status" id="pageStatus" role="status" aria-live="polite"></div>
+
+    <section id="homeworkPanel" class="score-panel" role="tabpanel">
+      <section class="trend-section" aria-labelledby="trendTitle">
+        <div class="section-heading trend-heading">
+          <div>
+            <h2 id="trendTitle">得分率趋势</h2>
+            <p id="trendSummary">暂无成绩</p>
+          </div>
+          <div class="date-range" aria-label="趋势日期范围">
+            <label>
+              <span>开始日期</span>
+              <input id="startDate" type="date">
+            </label>
+            <span class="date-separator" aria-hidden="true">至</span>
+            <label>
+              <span>截止日期</span>
+              <input id="endDate" type="date">
+            </label>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chartWrap">
+          <svg id="trendChart" role="img" aria-label="作业得分率趋势图"></svg>
+          <div class="chart-empty" id="chartEmpty">暂无趋势数据</div>
+          <div class="chart-tooltip" id="chartTooltip" hidden></div>
+        </div>
+      </section>
+
+      <section class="list-section" aria-labelledby="homeworkListTitle">
+        <div class="section-heading">
+          <div>
+            <h2 id="homeworkListTitle">成绩明细</h2>
+            <p id="homeworkCount">0 条记录</p>
+          </div>
+        </div>
+        <div class="score-grid" id="homeworkList"></div>
+        <button class="load-more" id="homeworkMore" type="button" hidden>加载更多</button>
+      </section>
+    </section>
+
+    <section id="testPanel" class="score-panel" role="tabpanel" hidden>
+      <section class="list-section test-section" aria-labelledby="testListTitle">
+        <div class="section-heading">
+          <div>
+            <h2 id="testListTitle">考试成绩</h2>
+            <p id="testCount">0 条记录</p>
+          </div>
+        </div>
+        <div class="test-list" id="testList"></div>
+        <button class="load-more" id="testMore" type="button" hidden>加载更多</button>
+      </section>
+    </section>
+  </main>
+
+  <nav class="tabbar score-nav" aria-label="主导航">
+    <button class="nav-tab" type="button" data-go="home">主页</button>
+    <button class="nav-tab" type="button" data-go="homework">作业</button>
+    <button class="nav-tab active" type="button" data-go="score" aria-current="page">成绩</button>
+    <button class="nav-tab" type="button" data-go="me">我的</button>
+  </nav>
+
+  <dialog class="score-dialog" id="scoreDialog">
+    <div class="dialog-head">
+      <h2 id="dialogTitle">成绩详情</h2>
+      <button class="icon-button" id="dialogClose" type="button" title="关闭" aria-label="关闭">×</button>
+    </div>
+    <div class="detail-grid" id="dialogDetails"></div>
+  </dialog>
+
+  <script src="../common/theme.js"></script>
+  <script src="../common/native-android.js?v=1.3.0"></script>
+  <script src="../common/platform.js?v=1.3.0"></script>
+  <script src="./score.js?v=1.3.0"></script>
+</body>
+</html>

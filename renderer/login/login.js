@@ -72,5 +72,5 @@ $('#btn').addEventListener('click', async () => {
     return;
   }
 
-  location.replace('../home/index.html');
+  location.replace('../main/index.html?page=home');
 });

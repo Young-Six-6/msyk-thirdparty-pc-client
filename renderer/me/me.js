@@ -46,25 +46,17 @@ const $ = (s) => document.querySelector(s);
 })();
 
 $('#backBtn')?.addEventListener('click', () => {
-  location.replace('../home/index.html');
+  window.PrimaryPageTransition.navigate('home');
 });
 
 $('#logout')?.addEventListener('click', async () => {
   await window.msykAPI.apiLogout();
-  location.replace('../login/index.html');
+  window.PrimaryPageTransition.open('../login/index.html');
 });
 
-document.querySelectorAll('.tabbar .tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const go = btn.dataset.go;
-    if (go === 'home') location.replace('../home/index.html');
-    if (go === 'homework') location.replace('../homework/index.html?from=me');
-    if (go === 'me') location.replace('./index.html');
-  });
-});
 $('#settingEntry')?.addEventListener('click', () => {
-  location.replace('../settings/index.html?from=me');
+  window.PrimaryPageTransition.open('../settings/index.html?from=me');
 });
 $('#aboutEntry')?.addEventListener('click', () => {
-  location.replace('../about/index.html?from=me');
+  window.PrimaryPageTransition.open('../about/index.html?from=me');
 });

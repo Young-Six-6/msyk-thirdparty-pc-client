@@ -3,15 +3,6 @@ window.Theme?.initTheme();
 const pageParams = new URLSearchParams(location.search);
 const listFrom = pageParams.get('from') === 'me' ? 'me' : 'home';
 
-document.querySelector('.homework-nav')?.addEventListener('click', (event) => {
-  const button = event.target.closest('.nav-tab');
-  if (!button || button.classList.contains('active')) return;
-
-  const target = button.dataset.go;
-  if (target === 'home') location.replace('../home/index.html');
-  if (target === 'me') location.replace('../me/index.html?from=homework');
-});
-
 const $ = (s) => document.querySelector(s);
 
 const TYPE_FILTER_FETCH_SIZE = 100;
@@ -51,6 +42,18 @@ function formatTime(ts) {
   const d = new Date(n);
   const pad = (x) => String(x).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function homeworkTypeName(value) {
+  const names = {
+    0: '预习作业',
+    1: '复习作业',
+    3: '课后作业',
+    5: '阅读材料',
+    6: '小测',
+    7: '答题卡',
+  };
+  return names[Number(value)] || '推送';
 }
 
 function subjectLabel(name) {
@@ -259,7 +262,7 @@ function renderList(data) {
             ${teacher ? `<span>${escapeHtml(teacher)}</span>` : ''}
             ${count !== '' ? `<span>题数：${escapeHtml(String(count))}</span>` : ''}
             ${endTime ? `<span>截止：${escapeHtml(String(endTime))}</span>` : ''}
-            <span>homeworkType=${hwType}</span>
+            <span>类型：${escapeHtml(homeworkTypeName(hwType))}</span>
           </div>
         </div>
         <div class="r">
@@ -283,7 +286,7 @@ function renderList(data) {
       if (hwType === 7) {
         // statu=1：新作业
         if (state.statu === 1) {
-          location.replace(`../doHomework/index.html?homeworkId=${encodeURIComponent(
+          window.PrimaryPageTransition.open(`../doHomework/index.html?homeworkId=${encodeURIComponent(
             homeworkId
           )}&modifyNum=${encodeURIComponent(modifyNum)}&from=${listFrom}`);
           return;
@@ -376,7 +379,7 @@ function renderList(data) {
             .forEach((error) => console.warn('[homework] 材料解析失败:', error));
         }
 
-        location.replace(`../homeworkDetail/index.html?${detailParams.toString()}`);
+        window.PrimaryPageTransition.open(`../homeworkDetail/index.html?${detailParams.toString()}`);
         return;
       }
 
@@ -397,10 +400,17 @@ function renderList(data) {
           return;
         }
 
-        const urlsJson = encodeURIComponent(JSON.stringify(urlArr));
-        const resIdsJson = encodeURIComponent(JSON.stringify(resolved.resIds));
-        const params = `homeworkId=${encodeURIComponent(homeworkId)}&modifyNum=${encodeURIComponent(modifyNum)}&isRead=1&urls=${urlsJson}&resIds=${resIdsJson}&from=${listFrom}`;
-        location.replace(`../homeworkDetail/index.html?${params}`);
+        const debugModeEnabled = state.statu !== 1 && await isDebugModeEnabled();
+        const detailParams = new URLSearchParams({
+          homeworkId,
+          modifyNum: String(modifyNum),
+          isRead: '1',
+          readOnly: state.statu === 1 || debugModeEnabled ? '0' : '1',
+          urls: JSON.stringify(urlArr),
+          resIds: JSON.stringify(resolved.resIds),
+          from: listFrom,
+        });
+        window.PrimaryPageTransition.open(`../homeworkDetail/index.html?${detailParams.toString()}`);
         return;
       }
 
@@ -413,7 +423,7 @@ function renderList(data) {
 
         if (urlArr.length) {
           const urlsJson = encodeURIComponent(JSON.stringify(urlArr));
-          location.replace(`../homeworkDetail/index.html?urls=${urlsJson}&from=${listFrom}`);
+          window.PrimaryPageTransition.open(`../homeworkDetail/index.html?urls=${urlsJson}&from=${listFrom}`);
           return;
         }
       }
@@ -431,7 +441,7 @@ function renderList(data) {
           alert(resp?.msg || '生成作业链接失败');
           return;
         }
-        location.replace(`../homeworkDetail/index.html?url=${encodeURIComponent(resp.data.url)}&from=${listFrom}`);
+        window.PrimaryPageTransition.open(`../homeworkDetail/index.html?url=${encodeURIComponent(resp.data.url)}&from=${listFrom}`);
       }
     });
   });

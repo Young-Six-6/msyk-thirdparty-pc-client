@@ -60,7 +60,7 @@ public final class MainActivity extends Activity {
         setContentView(rootView);
 
         configureWebView(apiClient);
-        String page = apiClient.hasSession() ? "home" : "login";
+        String page = apiClient.hasSession() ? "main" : "login";
         webView.loadUrl(APP_ORIGIN + "/assets/renderer/" + page + "/index.html");
     }
 
@@ -378,6 +378,7 @@ public final class MainActivity extends Activity {
         String url = webView.getUrl();
         if (url != null && url.startsWith(APP_ORIGIN)
                 && !url.contains("/home/index.html")
+                && !url.contains("/main/index.html")
                 && !url.contains("/login/index.html")) {
             webView.evaluateJavascript(
                     "document.getElementById('backBtn')?.click()",

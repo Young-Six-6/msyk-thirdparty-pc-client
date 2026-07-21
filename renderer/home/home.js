@@ -44,24 +44,14 @@ const $ = (s) => document.querySelector(s);
 
 $('#logout').addEventListener('click', async () => {
   await window.msykAPI.apiLogout();
-  location.replace('../login/index.html');
+  window.PrimaryPageTransition.open('../login/index.html');
 });
 
 // 进入作业
 $('#homeworkBtn').addEventListener('click', () => {
-  location.replace('../homework/index.html?from=home');
+  window.PrimaryPageTransition.navigate('homework');
 });
 // 进入我的
 $('#meBtn')?.addEventListener('click', () => {
-  location.replace('../me/index.html?from=home');
-});
-
-// Tabbar
-document.querySelectorAll('.tabbar .tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const go = btn.dataset.go;
-    if (go === 'home') location.replace('./index.html');
-    if (go === 'homework') location.replace('../homework/index.html?from=home');
-    if (go === 'me') location.replace('../me/index.html?from=home');
-  });
+  window.PrimaryPageTransition.navigate('me');
 });

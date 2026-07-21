@@ -201,6 +201,7 @@ class ApiClient {
       unitId: '',
       schoolId: '',
       schoolName: '',
+      classId: '',
       className: '',
       ip: '',
       userName: '',
@@ -216,6 +217,7 @@ class ApiClient {
         unitId: '',
         schoolId: '',
         schoolName: '',
+        classId: '',
         className: '',
         ip: '',
         userName: '',
@@ -299,6 +301,14 @@ class ApiClient {
     const schoolId = data.schoolId || data.data?.schoolId || unitId || '';
     const schoolName =
       info.schoolName || data.schoolName || data.data?.schoolName || '';
+    const classId =
+      info.classId ||
+      info.groupId ||
+      data.classId ||
+      data.groupId ||
+      data.data?.classId ||
+      data.data?.groupId ||
+      '';
     const className =
       info.groupName ||
       info.className ||
@@ -317,6 +327,7 @@ class ApiClient {
       unitId,
       schoolId,
       schoolName,
+      classId,
       className,
       ip,
       userName: userNameOut,
@@ -359,6 +370,81 @@ class ApiClient {
     };
 
     return await this.postSigned('/ws/student/homework/studentHomework/searchSubjectInfo', params);
+  }
+
+  // 学生作业成绩趋势。原版使用班级 ID 作为 groupId。
+  async getStudentScoreGraph({
+    subjectCode,
+    groupId,
+    studentId,
+    teacherId = '',
+    startTime = '',
+    endTime = '',
+    rows = 18,
+    pageIndex = 1,
+    unitId,
+  } = {}) {
+    const sid = studentId || this.session.studentId;
+    const uid = unitId || this.session.unitId;
+    const gid = groupId || this.session.classId || this.session.groupId;
+    if (!sid) throw new Error('getStudentScoreGraph 缺少 studentId');
+    if (!uid) throw new Error('getStudentScoreGraph 缺少 unitId');
+    if (!gid) throw new Error('getStudentScoreGraph 缺少 groupId，请重新登录');
+
+    return await this.postSigned('/ws/teacher/scoreAnalysis/singleStuScoreGraph', {
+      subjectCode: String(subjectCode || ''),
+      groupId: String(gid),
+      stuId: String(sid),
+      teacherId: String(teacherId || ''),
+      startTime: String(startTime || ''),
+      endTime: String(endTime || ''),
+      rows: String(rows),
+      pageIndex: String(pageIndex),
+      unitId: String(uid),
+    });
+  }
+
+  // 原版接口参数名就是 pagIndex，不能改成 pageIndex。
+  async getStudentScoreList({
+    subjectCode,
+    studentId,
+    pageIndex = 1,
+    pageSize = 18,
+    groupId,
+    unitId,
+  } = {}) {
+    const sid = studentId || this.session.studentId;
+    const uid = unitId || this.session.unitId;
+    const gid = groupId || this.session.classId || this.session.groupId;
+    if (!sid) throw new Error('getStudentScoreList 缺少 studentId');
+    if (!uid) throw new Error('getStudentScoreList 缺少 unitId');
+    if (!gid) throw new Error('getStudentScoreList 缺少 groupId，请重新登录');
+
+    return await this.postSigned('/ws/student/scoreAnalysis/transcript/transcriptlist', {
+      subjectCode: String(subjectCode || ''),
+      studentId: String(sid),
+      pagIndex: String(pageIndex),
+      pageSize: String(pageSize),
+      groupId: String(gid),
+      unitId: String(uid),
+    });
+  }
+
+  async getStudentTestScores({
+    subjectCode,
+    userId,
+    pageIndex = 1,
+    pageSize = 20,
+  } = {}) {
+    const sid = userId || this.session.studentId;
+    if (!sid) throw new Error('getStudentTestScores 缺少 userId');
+
+    return await this.postSigned('/ws/onlineTest/doOnlineTest/showStudentTest', {
+      subjectCode: String(subjectCode || ''),
+      userId: String(sid),
+      pageIndex: String(pageIndex),
+      pageSize: String(pageSize),
+    });
   }
 
   // 作业列表

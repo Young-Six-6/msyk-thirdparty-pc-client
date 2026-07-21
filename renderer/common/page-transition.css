@@ -1,0 +1,28 @@
+html.primary-page-embedded,
+html.primary-page-embedded body {
+  height: 100%;
+  overflow: hidden;
+}
+
+html.primary-page-embedded {
+  --safe-top: 0px;
+  --safe-right: 0px;
+  --safe-bottom: 0px;
+  --safe-left: 0px;
+}
+
+html.primary-page-embedded .tabbar {
+  display: none !important;
+}
+
+html.primary-page-embedded body[data-page="home"] .app-body,
+html.primary-page-embedded body[data-page="me"] .app-body {
+  padding-bottom: 14px;
+}
+
+@media (max-width: 1024px) {
+  html.primary-page-embedded body[data-page="home"] .app-body,
+  html.primary-page-embedded body[data-page="me"] .app-body {
+    padding-bottom: 12px;
+  }
+}

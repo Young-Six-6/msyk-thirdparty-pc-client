@@ -26,7 +26,7 @@ function createWindow() {
   const hasSession = store?.session?.sessionSign || store?.session?.sign;
 
   if (hasSession) {
-    mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'home', 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'main', 'index.html'));
   } else {
     mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'login', 'index.html'));
   }

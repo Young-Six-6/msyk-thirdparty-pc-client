@@ -11,7 +11,8 @@ body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text);heig
 .topbar{display:flex;flex:0 0 auto;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--border)}
 .title{font-weight:800;font-size:18px}
 .topbar .right{display:flex;gap:8px;align-items:center}
-input{padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.25);color:var(--text);min-width:240px}
+input{padding:8px 10px;border-radius:10px;border:1px solid var(--control-border);background:var(--control-bg);color:var(--text);min-width:240px;box-shadow:var(--control-shadow);transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
+input::placeholder{color:var(--muted);opacity:.82}
 button{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer}
 button:hover{border-color:rgba(255,255,255,.3)}
 button:disabled{opacity:.5;cursor:not-allowed}
@@ -25,7 +26,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .pill{border-radius:999px;padding:6px 12px;font-size:13px}
 .pill.active{background:rgba(255,255,255,.12)}
 
-select{padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.25);color:var(--text)}
+select{padding:8px 10px;border-radius:10px;border:1px solid var(--control-border);background:var(--control-bg);color:var(--text);box-shadow:var(--control-shadow);transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
+input:hover,select:hover{background:var(--control-bg-hover);border-color:color-mix(in srgb,var(--accent) 24%,var(--control-border))}
+input:focus-visible,select:focus-visible{outline:none;background:var(--control-bg);border-color:color-mix(in srgb,var(--accent) 72%,var(--control-border));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+:root[data-theme="light"] select{color-scheme:light}
+:root:not([data-theme="light"]) select{color-scheme:dark}
 .selects{display:flex;gap:10px;align-items:center}
 
 .list{flex:1 1 auto;min-height:0;overflow:auto;padding:0 14px 16px;display:flex;flex-direction:column;gap:10px}

@@ -3,7 +3,7 @@ window.Theme?.initTheme();
 const $ = (s) => document.querySelector(s);
 
 $('#backBtn')?.addEventListener('click', () => {
-  location.replace('../me/index.html');
+  location.replace('../main/index.html?page=me');
 });
 
 function detectThemeMode() {
