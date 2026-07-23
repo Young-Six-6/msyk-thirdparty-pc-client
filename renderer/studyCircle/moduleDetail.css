@@ -1,0 +1,13 @@
+.module-detail-main{width:min(980px,calc(100% - 32px));margin:0 auto;padding:24px 0 calc(40px + env(safe-area-inset-bottom))}
+.detail-surface,.project-groups,.project-chat,.project-summary{padding:22px 0;border-bottom:1px solid var(--border)}
+.detail-surface h2{margin:8px 0 12px;font-size:24px}.detail-surface p,.summary-content{white-space:pre-wrap;line-height:1.75;color:var(--muted)}
+.detail-meta,.resource-list,.section-title{display:flex;align-items:center;flex-wrap:wrap;gap:10px}.detail-meta{color:var(--muted);font-size:14px}
+.detail-images{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:16px}.detail-images button{padding:0;border:0;background:none;cursor:pointer}.detail-images img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px}
+.resource-list{margin-top:14px}.resource-list audio{width:min(100%,420px)}
+.case-praise{margin-top:18px}.case-praise.active{color:var(--accent);border-color:var(--accent)}
+.project-groups h2,.project-chat h2,.project-summary h2{font-size:18px;margin:0 0 14px}.group-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.group-button{min-height:76px;padding:12px;text-align:left;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--text);cursor:pointer}.group-button.active{border-color:var(--accent);box-shadow:inset 3px 0 var(--accent)}.group-button small{display:block;margin-top:6px;color:var(--muted)}
+.section-title{justify-content:space-between}.chat-list{display:flex;flex-direction:column;gap:10px;min-height:80px}.chat-message{max-width:78%;padding:10px 12px;border-radius:6px;background:var(--panel);border:1px solid var(--border)}.chat-message.mine{align-self:flex-end;background:color-mix(in srgb,var(--accent) 12%,var(--panel))}.chat-message strong,.chat-message time{display:block;font-size:12px;color:var(--muted)}.chat-message p{margin:5px 0 0;white-space:pre-wrap}
+.chat-composer{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:14px}.chat-composer textarea{resize:vertical;min-height:48px}.project-summary{margin-top:8px}
+#existingResultImages img{width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
+@media(max-width:600px){.module-detail-main{width:calc(100% - 24px);padding-top:14px}.detail-surface h2{font-size:20px}.detail-images{grid-template-columns:repeat(2,1fr)}.chat-message{max-width:90%}.chat-composer{grid-template-columns:1fr}.chat-composer button{justify-self:end}}

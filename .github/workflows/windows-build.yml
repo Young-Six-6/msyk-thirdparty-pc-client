@@ -133,29 +133,48 @@ jobs:
             Move-Item -LiteralPath $source.FullName -Destination $target -Force
           }
 
-      - name: Show build files
+      - name: Prepare publish files
         shell: pwsh
         run: |
-          Get-ChildItem -Path dist -Recurse | Select-Object FullName, Length
-          Get-ChildItem -Path android/app/build/outputs/apk -Recurse -File -Filter *.apk | Select-Object FullName, Length
+          $installer = Get-ChildItem -Path dist -File -Filter *.exe |
+            Where-Object { $_.Name -like "*Setup*" } |
+            Select-Object -First 1
+          $portable = Get-ChildItem -Path dist -File -Filter *.exe |
+            Where-Object { $_.Name -notlike "*Setup*" } |
+            Select-Object -First 1
+          $apk = Get-ChildItem -Path android/app/build/outputs/apk/debug -File -Filter *.apk |
+            Select-Object -First 1
 
-      - name: Upload Windows artifacts
+          if (-not $installer) { throw "没有找到 Windows 安装包" }
+          if (-not $portable) { throw "没有找到 Windows 免安装版" }
+          if (-not $apk) { throw "没有找到 Android APK" }
+
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          Copy-Item -LiteralPath $installer.FullName -Destination "release-assets/msyk-windows-installer-v$env:APP_VERSION.exe"
+          Copy-Item -LiteralPath $portable.FullName -Destination "release-assets/msyk-windows-portable-v$env:APP_VERSION.exe"
+          Copy-Item -LiteralPath $apk.FullName -Destination "release-assets/msyk-android-v$env:APP_VERSION.apk"
+
+          Get-ChildItem -Path release-assets -File | Select-Object Name, Length
+
+      - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe-v${{ env.APP_VERSION }}
-          path: |
-            dist/**/*.exe
-            dist/**/*.blockmap
-            dist/**/latest.yml
-            dist/**/builder-debug.yml
-            dist/**/builder-effective-config.yaml
+          name: windows-installer-v${{ env.APP_VERSION }}
+          path: release-assets/msyk-windows-installer-v${{ env.APP_VERSION }}.exe
           if-no-files-found: error
 
-      - name: Upload Android artifact
+      - name: Upload Windows portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable-v${{ env.APP_VERSION }}
+          path: release-assets/msyk-windows-portable-v${{ env.APP_VERSION }}.exe
+          if-no-files-found: error
+
+      - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk-v${{ env.APP_VERSION }}
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: release-assets/msyk-android-v${{ env.APP_VERSION }}.apk
           if-no-files-found: error
 
       - name: Prepare release tag
@@ -206,14 +225,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $files = @()
-          $files += Get-ChildItem -Path dist -Recurse -File -Filter *.exe | ForEach-Object { $_.FullName }
-          $files += Get-ChildItem -Path dist -Recurse -File -Filter *.blockmap | ForEach-Object { $_.FullName }
-          $files += Get-ChildItem -Path dist -Recurse -File -Filter latest.yml | ForEach-Object { $_.FullName }
-          $files += Get-ChildItem -Path android/app/build/outputs/apk/debug -Recurse -File -Filter *.apk | ForEach-Object { $_.FullName }
+          $files = Get-ChildItem -Path release-assets -File |
+            Sort-Object Name |
+            ForEach-Object { $_.FullName }
 
-          if ($files.Count -eq 0) {
-            throw "dist 目录中没有找到可发布文件"
+          if ($files.Count -ne 3) {
+            throw "发布目录应当只有 3 个文件，实际为 $($files.Count) 个"
           }
 
           Write-Host "Release tag: $env:RELEASE_TAG"
@@ -223,5 +240,5 @@ jobs:
 
           gh release create $env:RELEASE_TAG @files `
             --title "$env:RELEASE_TITLE" `
-            --notes "自动构建版本：$env:APP_VERSION`n包含：Windows EXE、Android debug-signed APK`n提交：$env:GITHUB_SHA" `
+            --notes "自动构建版本：$env:APP_VERSION`n包含：Windows 安装包、Windows 免安装版、Android APK`n提交：$env:GITHUB_SHA" `
             --latest

@@ -167,3 +167,99 @@ $('#debugRow')?.addEventListener('click', async () => {
   const current = await readDebugMode();
   await writeDebugMode(!current);
 });
+
+const passwordDialog = $('#passwordDialog');
+const passwordForm = $('#passwordForm');
+const passwordInputs = ['#oldPassword', '#newPassword', '#confirmPassword']
+  .map((selector) => $(selector));
+
+function setPasswordStatus(message = '', error = false) {
+  const status = $('#passwordStatus');
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle('error', error);
+}
+
+function closePasswordDialog() {
+  passwordDialog?.close();
+}
+
+$('#passwordRow')?.addEventListener('click', () => {
+  passwordForm?.reset();
+  passwordInputs.forEach((input) => { if (input) input.type = 'password'; });
+  setPasswordStatus();
+  passwordDialog?.showModal();
+  $('#oldPassword')?.focus();
+});
+
+$('#passwordClose')?.addEventListener('click', closePasswordDialog);
+$('#passwordCancel')?.addEventListener('click', closePasswordDialog);
+passwordDialog?.addEventListener('click', (event) => {
+  if (event.target === passwordDialog) closePasswordDialog();
+});
+
+$('#showPassword')?.addEventListener('change', (event) => {
+  const type = event.target.checked ? 'text' : 'password';
+  passwordInputs.forEach((input) => { if (input) input.type = type; });
+});
+
+async function updateRememberedPassword(newPassword) {
+  const savedResponse = await window.msykAPI?.getSavedLogin?.();
+  const saved = savedResponse?.code === 200 ? savedResponse.data : null;
+  if (!saved) return;
+
+  const saveResponse = await window.msykAPI?.setSavedLogin?.({
+    remember: true,
+    username: saved.username || '',
+    password: newPassword,
+    macAddress: saved.macAddress || '',
+  });
+  if (!saveResponse || saveResponse.code !== 200) {
+    throw new Error(saveResponse?.msg || '更新已保存密码失败');
+  }
+}
+
+passwordForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const oldPassword = $('#oldPassword')?.value.trim() || '';
+  const newPassword = $('#newPassword')?.value.trim() || '';
+  const confirmPassword = $('#confirmPassword')?.value.trim() || '';
+  const submit = $('#passwordSubmit');
+
+  if (!oldPassword) return setPasswordStatus('请输入原密码', true);
+  if (newPassword.length < 6 || newPassword.length > 18) {
+    return setPasswordStatus('新密码长度应为 6–18 位', true);
+  }
+  if (newPassword !== confirmPassword) return setPasswordStatus('两次输入的新密码不一致', true);
+  if (newPassword === oldPassword) return setPasswordStatus('新密码不能与原密码相同', true);
+
+  submit.disabled = true;
+  submit.textContent = '修改中...';
+  setPasswordStatus();
+  try {
+    const response = await window.msykAPI?.changePassword?.({ oldPassword, newPassword });
+    if (!response || response.code !== 200) {
+      throw new Error(response?.msg || '密码修改失败');
+    }
+    const data = response.data;
+    if (!data || typeof data !== 'object') throw new Error('密码修改响应异常');
+    const code = String(data.code ?? '');
+    if (code !== '10000') throw new Error(data.message || data.msg || `密码修改失败 (${code || '未知'})`);
+
+    try {
+      await updateRememberedPassword(newPassword);
+      passwordForm.reset();
+      closePasswordDialog();
+      alert('密码修改成功');
+    } catch (saveError) {
+      passwordForm.reset();
+      closePasswordDialog();
+      alert(`密码修改成功，但${saveError.message}。下次登录请使用新密码。`);
+    }
+  } catch (error) {
+    setPasswordStatus(error?.message || '密码修改失败', true);
+  } finally {
+    submit.disabled = false;
+    submit.textContent = '确认修改';
+  }
+});

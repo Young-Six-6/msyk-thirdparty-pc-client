@@ -47,9 +47,19 @@
           <div class="tile-sub">新作业 / 已结束</div>
         </button>
 
-        <button class="tile">
+        <button id="systemExerciseBtn" class="tile" type="button">
+          <div class="tile-title struck-label">系统练习</div>
+          <div class="tile-sub">按章节或知识点自主练习</div>
+        </button>
+
+        <button id="schoolExerciseBtn" class="tile" type="button" disabled>
+          <div class="tile-title struck-label">校本练习</div>
+          <div class="tile-sub" id="schoolExerciseState">正在检查开通状态</div>
+        </button>
+
+        <button id="studyCircleBtn" class="tile" type="button" disabled aria-describedby="studyCircleState">
           <div class="tile-title">学习圈</div>
-          <div class="tile-sub">（即将上线）</div>
+          <div class="tile-sub" id="studyCircleState">正在检查开通状态</div>
         </button>
 
         <button class="tile">
@@ -80,6 +90,7 @@
   <script src="../common/theme.js"></script>
   <script src="../common/native-android.js?v=1.3.0"></script>
   <script src="../common/platform.js?v=1.3.0"></script>
+  <script src="../common/study-circle-access.js"></script>
   <script src="./home.js"></script>
 </body>
 </html>

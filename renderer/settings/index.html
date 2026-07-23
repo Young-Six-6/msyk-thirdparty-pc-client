@@ -51,6 +51,14 @@
     </div>
 
     <div class="card">
+      <div class="card-title">账户与安全</div>
+      <button class="row clickable action-row" id="passwordRow" type="button">
+        <span class="k">登录密码</span>
+        <span class="v action-value">修改 <span aria-hidden="true">›</span></span>
+      </button>
+    </div>
+
+    <div class="card">
       <div class="card-title">高级</div>
       <div class="row clickable debug" id="debugRow">
         <span class="k">调试模式</span>
@@ -63,6 +71,41 @@
       </div>
     </div>
   </div>
+
+  <dialog id="passwordDialog" class="password-dialog">
+    <form id="passwordForm" class="password-form" method="dialog">
+      <div class="dialog-head">
+        <div>
+          <div class="dialog-title">修改密码</div>
+          <div class="dialog-subtitle">新密码长度为 6–18 位</div>
+        </div>
+        <button id="passwordClose" class="icon-button" type="button" aria-label="关闭" title="关闭">×</button>
+      </div>
+
+      <label class="field">
+        <span>原密码</span>
+        <input id="oldPassword" name="oldPassword" type="password" autocomplete="current-password" required>
+      </label>
+      <label class="field">
+        <span>新密码</span>
+        <input id="newPassword" name="newPassword" type="password" autocomplete="new-password" minlength="6" maxlength="18" required>
+      </label>
+      <label class="field">
+        <span>确认新密码</span>
+        <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="18" required>
+      </label>
+
+      <label class="show-password">
+        <input id="showPassword" type="checkbox">
+        <span>显示密码</span>
+      </label>
+      <div id="passwordStatus" class="form-status" role="status" aria-live="polite"></div>
+      <div class="dialog-actions">
+        <button id="passwordCancel" class="btn" type="button">取消</button>
+        <button id="passwordSubmit" class="btn primary" type="submit">确认修改</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 <script src="../common/theme.js"></script>
 <script src="../common/native-android.js?v=1.3.0"></script>

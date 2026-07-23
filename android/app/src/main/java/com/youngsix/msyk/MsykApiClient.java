@@ -36,6 +36,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 final class MsykApiClient {
     private static final String BASE_URL = "https://padapp.msyk.cn";
+    private static final String STUDY_CENTER_URL = "https://learningapp.msyk.cn";
     private static final String SECRET_KEY = "DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S";
     private static final String PUBLIC_KEY64 =
             "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj7YWxpOwulFyf+zQU77Y2cd9chZUMfiwokgUaigyeD8ac5E8LQpVHWzkm+1CuzH0GxTCWvAUVHWfefOEe4AThk4AbFBNCXqB+MqofroED6Uec1jrLGNcql9IWX3CN2J6mqJQ8QLB/xPg/7FUTmd8KtGPrtOrKKP64BM5cqaB1xCc4xmQTuWvtK9fRei6LVTHZyH0Ui7nP/TSF3PJV3ywMlkkQxKi8JBkz1fx1ZO5TVLYRKxzMQdeD6whq+kOsSXhlLIiC/Y8skdBJmsBWDMfQXxtMr5CyFbVMrG+lip/V5n22EdigHcLOmFW9nnB+sgiifLHeXx951lcTmaGy4uChQIDAQAB";
@@ -83,6 +84,8 @@ final class MsykApiClient {
             case "setSavedLogin":
                 secureLoginStore.set(payload);
                 return ok(null);
+            case "changePassword":
+                return changePassword(payload);
             case "debugGet":
                 return preferences.getBoolean("debugMode", false);
             case "debugSet":
@@ -98,12 +101,93 @@ final class MsykApiClient {
                         "unitId", requireSession("unitId"))));
             case "hwList":
                 return homeworkList(payload);
+            case "withdrawHomework":
+                return withdrawHomework(payload);
             case "scoreHomeworkTrend":
                 return studentScoreGraph(payload);
             case "scoreHomeworkList":
                 return studentScoreList(payload);
             case "scoreTestList":
                 return studentTestScoreList(payload);
+            case "studyCircleList":
+                return studyCircleList(payload);
+            case "studyCircleAuthority":
+                return studyCircleAuthority(payload);
+            case "studyCircleProjects":
+                return studyCircleProjects(payload);
+            case "studyCircleCases":
+                return studyCircleCases(payload);
+            case "studyCircleCaseDetail":
+                return studyCircleCaseDetail(payload);
+            case "studyCircleCasePraise":
+                return studyCircleCasePraise(payload);
+            case "studyCircleProjectDetail":
+                return studyCircleProjectDetail(payload);
+            case "studyCircleProjectChat":
+                return studyCircleProjectChat(payload);
+            case "studyCircleProjectSend":
+                return studyCircleProjectSend(payload);
+            case "studyCircleProjectSummary":
+                return studyCircleProjectSummary(payload);
+            case "studyCircleProjectState":
+                return studyCircleProjectState(payload);
+            case "studyCircleProjectResultSave":
+                return studyCircleProjectResultSave(payload);
+            case "studyCircleDetail":
+                return studyCircleDetail(payload);
+            case "studyCircleChat":
+                return studyCircleChat(payload);
+            case "studyCircleAddQuestion":
+                return studyCircleAddQuestion(payload);
+            case "studyCircleAddReply":
+                return studyCircleAddReply(payload);
+            case "studyCirclePraise":
+                return studyCirclePraise(payload);
+            case "studyCircleSetPublic":
+                return studyCircleSetPublic(payload);
+            case "studyCircleEnd":
+                return studyCircleEnd(payload);
+            case "studyCircleDelete":
+                return studyCircleDelete(payload);
+            case "systemExerciseHistory":
+                return systemExerciseHistory(payload);
+            case "systemExerciseSubjects":
+                return systemExerciseSubjects(payload);
+            case "systemExerciseEditions":
+                return systemExerciseEditions(payload);
+            case "systemExerciseBooks":
+                return systemExerciseBooks(payload);
+            case "systemExerciseDefaultBook":
+                return systemExerciseDefaultBook(payload);
+            case "systemExerciseNodes":
+                return systemExerciseNodes(payload);
+            case "systemExerciseSaveHistory":
+                return systemExerciseSaveHistory(payload);
+            case "systemExerciseStart":
+                return systemExerciseStart(payload);
+            case "systemExerciseSubmit":
+                return systemExerciseSubmit(payload);
+            case "systemExerciseQuestionUrl":
+                return systemExerciseQuestionUrl(payload);
+            case "schoolExerciseAccess":
+                return schoolExerciseAccess(payload);
+            case "schoolExerciseBooks":
+                return schoolExerciseBooks(payload);
+            case "schoolExerciseChapters":
+                return schoolExerciseChapters(payload);
+            case "schoolExerciseQuestions":
+                return schoolExerciseQuestions(payload);
+            case "schoolExerciseSaveResult":
+                return schoolExerciseSaveResult(payload);
+            case "schoolExerciseQuestionUrl":
+                return schoolExerciseQuestionUrl(payload);
+            case "uploadStudyCircleMediaStart":
+                payload.put("uploadTarget", "studyCircle");
+                return startHomeworkMediaUpload(payload);
+            case "uploadStudyCircleMediaChunk":
+                return appendHomeworkMediaChunk(payload);
+            case "uploadStudyCircleMediaFinish":
+                return finishHomeworkMediaUpload(payload);
             case "hwStatus":
                 return homeworkStatus(payload);
             case "hwPptInfo":
@@ -239,6 +323,14 @@ final class MsykApiClient {
                 .put("ip", data.optString("ip", ""))
                 .put("userName", firstNonEmpty(info.optString("userName", ""), userName))
                 .put("realName", firstNonEmpty(info.optString("realName", ""), data.optString("realName", "")))
+                .put("gradeCode", firstNonEmpty(
+                        info.optString("gradeCode", ""), data.optString("gradeCode", ""),
+                        nested == null ? "" : nested.optString("gradeCode", "")))
+                .put("gradeName", firstNonEmpty(
+                        info.optString("gradeName", ""), info.optString("gredeName", ""),
+                        data.optString("gradeName", ""), data.optString("gredeName", ""),
+                        nested == null ? "" : nested.optString("gradeName", ""),
+                        nested == null ? "" : nested.optString("gredeName", "")))
                 .put("macAddress", macAddress)
                 .put("sn", sn)
                 .put("versionCode", versionCode);
@@ -258,6 +350,163 @@ final class MsykApiClient {
                 "unitId", requireSession("unitId"),
                 "startTime", value(payload, "startTime", "0"),
                 "endTime", value(payload, "endTime", "0"))));
+    }
+
+    private JSONObject changePassword(JSONObject payload) throws Exception {
+        String newPassword = required(payload, "newPassword").trim();
+        if (newPassword.length() < 6 || newPassword.length() > 18) {
+            throw new IllegalArgumentException("新密码长度应为 6–18 位");
+        }
+        return wrap(postSigned("/ws/app/changePassword", params(
+                "userId", value(payload, "userId", requireSession("studentId")),
+                "newPassword", newPassword,
+                "oldPassword", required(payload, "oldPassword").trim())));
+    }
+
+    private JSONObject withdrawHomework(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/homework/studentHomework/studentWithdrawHomework", params(
+                "homeworkId", required(payload, "homeworkId"),
+                "studentId", value(payload, "studentId", requireSession("studentId")),
+                "unitId", value(payload, "unitId", requireSession("unitId")))));
+    }
+
+    private String exerciseGrade(JSONObject payload) {
+        return value(payload, "gradeCode", sessionValue("gradeCode"));
+    }
+
+    private JSONObject systemExerciseHistory(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/exercise/doexercise/getDoExercisHistory", params(
+                "studentId", requireSession("studentId"), "gradeCode", exerciseGrade(payload),
+                "unitId", requireSession("unitId"))));
+    }
+
+    private JSONObject systemExerciseSubjects(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/exercise/doexercise/getSubjectByUnitIdAndGradeCode", params(
+                "unitId", requireSession("unitId"), "gradeCode", exerciseGrade(payload))));
+    }
+
+    private JSONObject systemExerciseEditions(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/brushTest/getZyBookByGradeAndSubject", params(
+                "unitId", requireSession("unitId"), "gradeCode", exerciseGrade(payload),
+                "subjectCode", required(payload, "subjectCode"))));
+    }
+
+    private JSONObject systemExerciseBooks(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/brushTest/getZyBookByEdition", params(
+                "unitId", requireSession("unitId"), "edition", required(payload, "edition"),
+                "gradeCode", exerciseGrade(payload), "subjectCode", required(payload, "subjectCode"))));
+    }
+
+    private JSONObject systemExerciseDefaultBook(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/exercise/doexercise/getDefaultzyBookAndTree", params(
+                "unitId", requireSession("unitId"), "gradeCode", exerciseGrade(payload),
+                "subjectCode", required(payload, "subjectCode"))));
+    }
+
+    private JSONObject systemExerciseNodes(JSONObject payload) throws Exception {
+        if ("knowledge".equals(value(payload, "mode", "chapter"))) {
+            return wrap(postSigned("/ws/teacher/courseware/ChapterAndKnowledge/selectKnowledgeBySubAndGra", params(
+                    "unitId", requireSession("unitId"), "gradeCode", exerciseGrade(payload),
+                    "subjectCode", required(payload, "subjectCode"), "parentId", value(payload, "parentId", ""))));
+        }
+        return wrap(postSigned("/ws/teacher/courseware/ChapterAndKnowledge/selectChapterByDirIdAndParentId", params(
+                "dirId", required(payload, "dirId"), "parentId", value(payload, "parentId", ""))));
+    }
+
+    private JSONObject systemExerciseSaveHistory(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/exercise/doexercise/saveDoExercisHistory", params(
+                "studentId", requireSession("studentId"), "subjectCode", required(payload, "subjectCode"),
+                "gradeCode", exerciseGrade(payload), "bookId", value(payload, "bookId", ""),
+                "bookName", value(payload, "bookName", ""))));
+    }
+
+    private JSONObject systemExerciseStart(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/exercise/doexercise/getQuestions", params(
+                "studentId", requireSession("studentId"), "subjectCode", required(payload, "subjectCode"),
+                "tagIds", required(payload, "tagIds"), "bookId", value(payload, "bookId", ""),
+                "type", value(payload, "type", "1"), "nodeCodes", value(payload, "nodeCodes", ""),
+                "gradeCode", exerciseGrade(payload))));
+    }
+
+    private JSONObject systemExerciseSubmit(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/homework/homeworkError/brushingSubmit", params(
+                "questionIds", required(payload, "questionIds"), "studentId", requireSession("studentId"),
+                "subjectCode", required(payload, "subjectCode"), "gradeCode", exerciseGrade(payload),
+                "bookId", value(payload, "bookId", ""), "doTime", value(payload, "doTime", "0"),
+                "teacherExamId", required(payload, "teacherExamId"))));
+    }
+
+    private JSONObject systemExerciseQuestionUrl(JSONObject payload) throws Exception {
+        String questionId = required(payload, "questionId");
+        String subjectCode = required(payload, "subjectCode");
+        String studentId = requireSession("studentId");
+        String classId = firstNonEmpty(sessionValue("classId"), sessionValue("groupId"));
+        String unitId = requireSession("unitId");
+        boolean showAnswer = "1".equals(value(payload, "showAnswer", "0"));
+        String salt = String.valueOf(System.currentTimeMillis());
+        String judgeAnswer = showAnswer ? "1" : "0";
+        String source = showAnswer ? "1" : "0" + questionId + studentId + "1" + subjectCode
+                + classId + unitId + "0" + judgeAnswer + "2" + salt + SECRET_KEY;
+        Map<String, String> query = params(
+                "showAnswer", showAnswer ? "1" : "0", "questionId", questionId, "studentId", studentId,
+                "isFinished", "1", "subjectCode", subjectCode, "classId", classId,
+                "auth", value(payload, "auth", ""), "unitId", unitId, "judgeAnswer", judgeAnswer,
+                "type", "2", "salt", salt, "key", md5Hex(source));
+        if (!showAnswer && !value(payload, "difficulty", "").isEmpty()) {
+            query.put("difficulty", value(payload, "difficulty", ""));
+        }
+        return ok(new JSONObject().put("url",
+                "https://www.msyk.cn/webview/question/singleDoErrorQuestion?" + encodeForm(query)));
+    }
+
+    private String schoolUnitId() {
+        return firstNonEmpty(sessionValue("schoolId"), sessionValue("unitId"));
+    }
+
+    private JSONObject schoolExerciseAccess(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/schoolDoExercise/intoSchoolDoExercise", params(
+                "subjectCodeList", value(payload, "subjectCodeList", "[]"), "unitId", schoolUnitId(),
+                "userId", requireSession("studentId"), "gradeCode", exerciseGrade(payload))));
+    }
+
+    private JSONObject schoolExerciseBooks(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/schoolDoExercise/getSchoolBooks", params(
+                "studentId", requireSession("studentId"), "unitId", schoolUnitId(),
+                "gradeCode", exerciseGrade(payload), "subjectCode", required(payload, "subjectCode"))));
+    }
+
+    private JSONObject schoolExerciseChapters(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/schoolDoExercise/getSchoolDoexerciseTree", params(
+                "codeLevel", value(payload, "codeLevel", "0"), "dirId", required(payload, "dirId"),
+                "gradeCode", exerciseGrade(payload), "nodeCode", value(payload, "nodeCode", ""),
+                "subjectCode", required(payload, "subjectCode"), "unitId", schoolUnitId(),
+                "userId", requireSession("studentId"))));
+    }
+
+    private JSONObject schoolExerciseQuestions(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/schoolDoExercise/sequenceDoExercise", params(
+                "studentId", requireSession("studentId"), "unitId", schoolUnitId(),
+                "gradeCode", exerciseGrade(payload), "subjectCode", required(payload, "subjectCode"),
+                "dirId", required(payload, "dirId"), "tagId", required(payload, "tagId"))));
+    }
+
+    private JSONObject schoolExerciseSaveResult(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/schoolDoExercise/saveOneDoExerciseResult", params(
+                "doTime", value(payload, "doTime", "0"), "questionRef", value(payload, "questionRef", "[]"),
+                "subjectCode", required(payload, "subjectCode"), "gradeCode", exerciseGrade(payload),
+                "errorNnm", value(payload, "errorNum", "0"), "correctNum", value(payload, "correctNum", "0"),
+                "studnetId", requireSession("studentId"), "dirId", required(payload, "dirId"))));
+    }
+
+    private JSONObject schoolExerciseQuestionUrl(JSONObject payload) throws Exception {
+        Map<String, String> query = params(
+                "questionId", required(payload, "questionId"),
+                "showAnswer", value(payload, "showAnswer", "0"),
+                "unitId", schoolUnitId(), "gradeCode", exerciseGrade(payload),
+                "classId", firstNonEmpty(sessionValue("classId"), sessionValue("groupId")), "judgeAnswer", "0");
+        if (!value(payload, "myAnswer", "").isEmpty()) query.put("myAnswer", value(payload, "myAnswer", ""));
+        return ok(new JSONObject().put("url",
+                "https://www.msyk.cn/webview/question/singleDoSchoolExercise?" + encodeForm(query)));
     }
 
     private JSONObject studentScoreGraph(JSONObject payload) throws Exception {
@@ -289,6 +538,218 @@ final class MsykApiClient {
                 "userId", value(payload, "userId", requireSession("studentId")),
                 "pageIndex", value(payload, "pageIndex", "1"),
                 "pageSize", value(payload, "pageSize", "20"))));
+    }
+
+    private JSONObject studyCircleList(JSONObject payload) throws Exception {
+        boolean mine = "mine".equals(value(payload, "scope", "square"));
+        Map<String, String> form = params(
+                "userId", requireSession("studentId"),
+                "unitId", requireSession("unitId"),
+                "subjectCode", value(payload, "subjectCode", ""),
+                "startTime", value(payload, "startTime", ""),
+                "endTime", value(payload, "endTime", ""),
+                "pageIndex", value(payload, "pageIndex", "1"),
+                "pageSize", value(payload, "pageSize", "20"));
+        if (mine) {
+            form.put("ownerType", "1");
+            form.put("endQuestionType", value(payload, "endQuestionType", ""));
+            form.put("onlyShowPublic", value(payload, "onlyShowPublic", ""));
+        }
+        String path = mine
+                ? "/ws/submitQuestion/getSubmitQuestion"
+                : "/ws/submitQuestion/getPublicSubmitQuestion";
+        return wrap(request(STUDY_CENTER_URL + path, "POST", form, null));
+    }
+
+    private JSONObject studyCircleAuthority(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/submitQuestion/studentSubmitQuestionAuthority", "POST", params(
+                "unitId", value(payload, "unitId", requireSession("unitId"))), null));
+    }
+
+    private JSONObject studyCircleProjects(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/teacher/project/studentGetProjectList", "POST", params(
+                "userId", requireSession("studentId"),
+                "subjectCode", value(payload, "subjectCode", ""),
+                "projectType", value(payload, "projectType", "0"),
+                "sortType", value(payload, "sortType", "0"),
+                "pageIndex", value(payload, "pageIndex", "1"),
+                "pageSize", value(payload, "pageSize", "18")), null));
+    }
+
+    private JSONObject studyCircleCases(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/typicalCase/teacher/listCase", "POST", params(
+                "startTime", value(payload, "startTime", ""),
+                "endTime", value(payload, "endTime", ""),
+                "subjectCode", value(payload, "subjectCode", ""),
+                "classId", firstNonEmpty(sessionValue("classId"), sessionValue("groupId")),
+                "topType", value(payload, "topType", "0"),
+                "pageIndex", value(payload, "pageIndex", "1"),
+                "pageSize", value(payload, "pageSize", "20"),
+                "userId", requireSession("studentId"),
+                "unitId", requireSession("unitId"),
+                "userType", "1"), null));
+    }
+
+    private JSONObject studyCircleCaseDetail(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/typicalCase/student/getCaseDetail", "POST", params(
+                "uuid", required(payload, "uuid"),
+                "userId", requireSession("studentId"),
+                "caseType", value(payload, "caseType", "1"),
+                "userType", "1",
+                "unitId", requireSession("unitId")), null));
+    }
+
+    private JSONObject studyCircleCasePraise(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/typicalCase/student/modifyPraise", "POST", params(
+                "typicalCaseUuid", required(payload, "uuid"),
+                "unitId", requireSession("unitId"),
+                "userId", requireSession("studentId"),
+                "isPraise", value(payload, "isPraise", "1")), null));
+    }
+
+    private JSONObject studyCircleProjectDetail(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/teacher/project/studentGetProjectInfo", "POST", params(
+                "studentId", requireSession("studentId"),
+                "projectUuId", required(payload, "projectUuId"),
+                "unitId", requireSession("unitId")), null));
+    }
+
+    private JSONObject studyCircleProjectChat(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/teacher/discussionGroup/getChitchatList", "POST", params(
+                "userId", requireSession("studentId"),
+                "groupUuId", required(payload, "groupUuId"),
+                "projectUuId", required(payload, "projectUuId"),
+                "unitId", requireSession("unitId"),
+                "pageIndex", value(payload, "pageIndex", "1"),
+                "submitTime", value(payload, "submitTime", ""),
+                "pageSize", "30"), null));
+    }
+
+    private JSONObject studyCircleProjectSend(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/teacher/discussionGroup/studentSendInformation", "POST", params(
+                "studentId", requireSession("studentId"),
+                "groupId", required(payload, "groupUuId"),
+                "projectUuId", required(payload, "projectUuId"),
+                "resourceType", "0",
+                "content", required(payload, "content"),
+                "sendTime", value(payload, "sendTime", String.valueOf(System.currentTimeMillis())),
+                "longTime", "0",
+                "uuid", value(payload, "uuid", java.util.UUID.randomUUID().toString())), null));
+    }
+
+    private JSONObject studyCircleProjectSummary(JSONObject payload) throws Exception {
+        String groupUuId = value(payload, "groupUuId", "").trim();
+        Map<String, String> form = params(
+                "projectUuId", required(payload, "projectUuId"),
+                "unitId", requireSession("unitId"));
+        String path = "/ws/teacher/project/getProjectSummarizeInfo";
+        if (!groupUuId.isEmpty()) {
+            form.put("groupUuId", groupUuId);
+            path = "/ws/teacher/project/getProjectGroupSummarizeInfo";
+        }
+        return wrap(request(STUDY_CENTER_URL + path, "POST", form, null));
+    }
+
+    private JSONObject studyCircleProjectState(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/teacher/project/getSpeechState", "POST", params(
+                "projectUuId", required(payload, "projectUuId"),
+                "groupUuId", required(payload, "groupUuId"),
+                "studentId", requireSession("studentId"),
+                "unitId", requireSession("unitId")), null));
+    }
+
+    private JSONObject studyCircleProjectResultSave(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/teacher/project/studentSaveSummarize", "POST", params(
+                "summarizeUuId", value(payload, "summarizeUuId", ""),
+                "projectUuId", required(payload, "projectUuId"),
+                "groupUuId", required(payload, "groupUuId"),
+                "content", value(payload, "content", "").trim(),
+                "studentId", requireSession("studentId"),
+                "resourceJsonStr", value(payload, "resources", "[]"),
+                "submitType", value(payload, "submitType", "1")), null));
+    }
+
+    private JSONObject studyCircleDetail(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/submitQuestion/getSubmitQuestionInfo", "POST", params(
+                "submitQuestionUuId", required(payload, "submitQuestionUuId"),
+                "unitId", requireSession("unitId")), null));
+    }
+
+    private JSONObject studyCircleChat(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/chattingRecords/getChattingRecords", "POST", params(
+                "submitQuestionUuId", required(payload, "submitQuestionUuId"),
+                "unitId", requireSession("unitId"),
+                "userId", requireSession("studentId")), null));
+    }
+
+    private JSONObject studyCircleAddQuestion(JSONObject payload) throws Exception {
+        String teacherId = required(payload, "teacherId");
+        String subjectCode = required(payload, "subjectCode");
+        String classId = firstNonEmpty(value(payload, "classId", ""), sessionValue("classId"), sessionValue("groupId"));
+        if (classId.isEmpty()) throw new IllegalStateException("提问缺少班级 ID，请重新登录");
+        String content = value(payload, "content", "").trim();
+        if (content.isEmpty()) content = "老师，求解答";
+        return wrap(request(STUDY_CENTER_URL + "/ws/submitQuestion/addSubmitQuestion", "POST", params(
+                "studentId", requireSession("studentId"),
+                "content", content,
+                "picUrls", value(payload, "picUrls", "[]"),
+                "aduioList", value(payload, "audioList", "[]"),
+                "unitId", requireSession("unitId"),
+                "homeworkName", value(payload, "homeworkName", ""),
+                "orderNum", value(payload, "orderNum", "0"),
+                "teacherId", teacherId,
+                "subjectCode", subjectCode,
+                "questionId", value(payload, "questionId", ""),
+                "classId", classId), null));
+    }
+
+    private JSONObject studyCircleAddReply(JSONObject payload) throws Exception {
+        String content = value(payload, "content", "").trim();
+        String picUrls = value(payload, "picUrls", "[]");
+        String audioList = value(payload, "audioList", "[]");
+        if (content.isEmpty() && "[]".equals(picUrls) && "[]".equals(audioList)) {
+            throw new IllegalArgumentException("请输入回复内容或添加附件");
+        }
+        return wrap(request(STUDY_CENTER_URL + "/ws/chattingRecords/addChattingRecord", "POST", params(
+                "userId", requireSession("studentId"),
+                "ownerType", "1",
+                "content", content,
+                "picUrls", picUrls,
+                "aduioList", audioList,
+                "submitQuestionUuIds", required(payload, "submitQuestionUuId"),
+                "unitId", requireSession("unitId"),
+                "showAnalysis", value(payload, "showAnalysis", "0")), null));
+    }
+
+    private JSONObject studyCirclePraise(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/submitQuestion/praise", "POST", params(
+                "userId", requireSession("studentId"),
+                "ownerType", "1",
+                "unitId", requireSession("unitId"),
+                "submitQuestionUuId", required(payload, "submitQuestionUuId"),
+                "praiseType", value(payload, "praiseType", "1")), null));
+    }
+
+    private JSONObject studyCircleSetPublic(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/submitQuestion/isPublicSubmitQuestion", "POST", params(
+                "submitQuestionUuIds", studyCircleQuestionIds(payload),
+                "unitId", requireSession("unitId"), "type", value(payload, "isPublic", "0")), null));
+    }
+
+    private JSONObject studyCircleEnd(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/submitQuestion/endSubmitQuestion", "POST", params(
+                "submitQuestionUuIds", studyCircleQuestionIds(payload),
+                "unitId", requireSession("unitId")), null));
+    }
+
+    private JSONObject studyCircleDelete(JSONObject payload) throws Exception {
+        return wrap(request(STUDY_CENTER_URL + "/ws/submitQuestion/delSubmitQuestion", "POST", params(
+                "submitQuestionUuIds", studyCircleQuestionIds(payload),
+                "unitId", requireSession("unitId"), "type", "2"), null));
+    }
+
+    private String studyCircleQuestionIds(JSONObject payload) throws Exception {
+        return new JSONArray().put(required(payload, "submitQuestionUuId")).toString();
     }
 
     private String scoreGroupId(JSONObject payload) {
@@ -499,6 +960,43 @@ final class MsykApiClient {
         return ok(result);
     }
 
+    private JSONObject uploadStudyCircleMedia(JSONObject payload) throws Exception {
+        int mediaType = Integer.parseInt(value(payload, "mediaType", "0"));
+        if (mediaType != 0 && mediaType != 1) {
+            throw new IllegalArgumentException("学习圈仅支持图片或音频附件");
+        }
+        String extension = normalizeStudyCircleExtension(value(payload, "ext", ""), mediaType);
+        String objectKey = "squirrel/android/worldwide/" + System.currentTimeMillis() + "0/"
+                + UUID.randomUUID() + "." + extension;
+        String contentType = value(payload, "contentType", mediaType == 0 ? "image/jpeg" : "audio/mpeg");
+        String encoded = required(payload, "base64");
+        int comma = encoded.indexOf(',');
+        if (encoded.startsWith("data:") && comma >= 0) encoded = encoded.substring(comma + 1);
+        byte[] content = Base64.decode(encoded, Base64.DEFAULT);
+        if (content.length == 0) throw new IllegalArgumentException("上传文件为空");
+
+        String salt = String.valueOf(System.currentTimeMillis());
+        JSONObject credentials = requireBusiness(
+                request(BASE_URL + "/ws/common/uploadController/getParams", "POST", params(
+                        "retry", "0",
+                        "salt", salt,
+                        "key", md5Hex("0" + salt + SECRET_KEY)), null),
+                "获取OSS凭证");
+        for (String field : new String[]{"AccessKeyId", "AccessKeySecret", "SecurityToken"}) {
+            if (credentials.optString(field, "").isEmpty()) {
+                throw new IllegalStateException("获取OSS凭证缺少 " + field);
+            }
+        }
+        putOss(objectKey, content, contentType,
+                credentials.getString("AccessKeyId"),
+                credentials.getString("AccessKeySecret"),
+                credentials.getString("SecurityToken"));
+        return ok(new JSONObject()
+                .put("url", OSS_PUBLIC_BASE + objectKey)
+                .put("key", objectKey)
+                .put("mediaType", mediaType));
+    }
+
     private JSONObject startHomeworkMediaUpload(JSONObject payload) throws Exception {
         clearExpiredUploads();
         String uploadId = required(payload, "uploadId");
@@ -539,6 +1037,10 @@ final class MsykApiClient {
         }
 
         upload.metadata.put("base64", upload.buffer.toString());
+        if ("studyCircle".equals(upload.metadata.optString("uploadTarget"))) {
+            upload.metadata.remove("uploadTarget");
+            return uploadStudyCircleMedia(upload.metadata);
+        }
         return uploadHomeworkMedia(upload.metadata);
     }
 
@@ -792,6 +1294,13 @@ final class MsykApiClient {
         if (mediaType == 0) return "jpg";
         if (value.matches("mp3|m4a|aac|wav|ogg|webm")) return value;
         return "mp3";
+    }
+
+    private static String normalizeStudyCircleExtension(String extension, int mediaType) {
+        String value = extension == null ? "" : extension.toLowerCase(Locale.ROOT).replaceFirst("^\\.", "");
+        if (mediaType == 0 && value.matches("jpg|jpeg|png|gif|webp|bmp")) return value;
+        if (mediaType == 0) return "jpg";
+        return normalizeExtension(value, mediaType);
     }
 
     private static JSONObject findRegistration(JSONObject data) {

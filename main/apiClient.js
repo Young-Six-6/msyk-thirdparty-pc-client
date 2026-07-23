@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const OSS_BUCKET = 'msyk';
 const OSS_ENDPOINT = 'oss-cn-shanghai.aliyuncs.com';
 const OSS_PUBLIC_BASE = 'https://msyk.wpstatic.cn/';
+const STUDY_CENTER_BASE = 'https://learningapp.msyk.cn';
 
 // ====== 配置区 ======
 const DEFAULT_SECRET_KEY = 'DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S';
@@ -51,7 +52,20 @@ function normalizeExtension(ext, mediaType) {
   throw new Error(`不支持的作业媒体类型: ${mediaType}`);
 }
 
+function normalizeStudyCircleExtension(ext, mediaType) {
+  const value = String(ext || '').trim().toLowerCase().replace(/^\./, '');
+  if (mediaType === 0 && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(value)) return value;
+  if (mediaType === 0) return 'jpg';
+  return normalizeExtension(value, mediaType);
+}
+
 function createHomeworkObjectKey(extension) {
+  const timestamp = Date.now();
+  const objectName = `${crypto.randomUUID()}.${extension}`;
+  return `squirrel/android/worldwide/${timestamp}0/${objectName}`;
+}
+
+function createStudyCircleObjectKey(extension) {
   const timestamp = Date.now();
   const objectName = `${crypto.randomUUID()}.${extension}`;
   return `squirrel/android/worldwide/${timestamp}0/${objectName}`;
@@ -206,6 +220,8 @@ class ApiClient {
       ip: '',
       userName: '',
       realName: '',
+      gradeCode: '',
+      gradeName: '',
     };
   }
 
@@ -222,6 +238,8 @@ class ApiClient {
         ip: '',
         userName: '',
         realName: '',
+        gradeCode: '',
+        gradeName: '',
       };
       return;
     }
@@ -319,6 +337,9 @@ class ApiClient {
       '';
     const ip = data.ip || data.data?.ip || '';
     const realName = info.realName || data.realName || data.data?.realName || '';
+    const gradeCode = info.gradeCode || data.gradeCode || data.data?.gradeCode || '';
+    const gradeName = info.gradeName || info.gredeName || data.gradeName || data.gredeName
+      || data.data?.gradeName || data.data?.gredeName || '';
     const userNameOut = info.userName || data.userName || data.data?.userName || userName;
 
     const session = {
@@ -332,6 +353,8 @@ class ApiClient {
       ip,
       userName: userNameOut,
       realName,
+      gradeCode,
+      gradeName,
       macAddress,
       sn,
       versionCode,
@@ -353,6 +376,15 @@ class ApiClient {
       url: `${this.baseUrl}${path}`,
       method: 'POST',
       form,
+      headers: { 'user-agent': this.userAgent, 'accept-encoding': 'gzip' },
+    });
+  }
+
+  async postStudyCenter(path, params = {}) {
+    return await requestForm({
+      url: `${STUDY_CENTER_BASE}${path}`,
+      method: 'POST',
+      form: params,
       headers: { 'user-agent': this.userAgent, 'accept-encoding': 'gzip' },
     });
   }
@@ -447,6 +479,451 @@ class ApiClient {
     });
   }
 
+  async getSystemExerciseHistory({ gradeCode } = {}) {
+    const studentId = String(this.session.studentId || '').trim();
+    const unitId = String(this.session.unitId || '').trim();
+    const grade = String(gradeCode || this.session.gradeCode || '').trim();
+    if (!studentId || !unitId) throw new Error('系统练习缺少学生或学校信息');
+    return await this.postSigned('/ws/student/exercise/doexercise/getDoExercisHistory', {
+      studentId, gradeCode: grade, unitId,
+    });
+  }
+
+  async getSystemExerciseSubjects({ gradeCode } = {}) {
+    const unitId = String(this.session.unitId || '').trim();
+    const grade = String(gradeCode || this.session.gradeCode || '').trim();
+    if (!unitId || !grade) throw new Error('系统练习缺少学校或年级信息');
+    return await this.postSigned('/ws/student/exercise/doexercise/getSubjectByUnitIdAndGradeCode', {
+      unitId, gradeCode: grade,
+    });
+  }
+
+  async getSystemExerciseEditions({ gradeCode, subjectCode } = {}) {
+    return await this.postSigned('/ws/brushTest/getZyBookByGradeAndSubject', {
+      unitId: String(this.session.unitId || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''),
+      subjectCode: String(subjectCode || ''),
+    });
+  }
+
+  async getSystemExerciseBooks({ edition, gradeCode, subjectCode } = {}) {
+    return await this.postSigned('/ws/brushTest/getZyBookByEdition', {
+      unitId: String(this.session.unitId || ''),
+      edition: String(edition || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''),
+      subjectCode: String(subjectCode || ''),
+    });
+  }
+
+  async getSystemExerciseDefaultBook({ gradeCode, subjectCode } = {}) {
+    return await this.postSigned('/ws/student/exercise/doexercise/getDefaultzyBookAndTree', {
+      unitId: String(this.session.unitId || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''),
+      subjectCode: String(subjectCode || ''),
+    });
+  }
+
+  async getSystemExerciseNodes({ mode = 'chapter', dirId, parentId = '', gradeCode, subjectCode } = {}) {
+    if (mode === 'knowledge') {
+      return await this.postSigned('/ws/teacher/courseware/ChapterAndKnowledge/selectKnowledgeBySubAndGra', {
+        unitId: String(this.session.unitId || ''),
+        gradeCode: String(gradeCode || this.session.gradeCode || ''),
+        subjectCode: String(subjectCode || ''),
+        parentId: String(parentId || ''),
+      });
+    }
+    if (!dirId) throw new Error('章节练习缺少教材 ID');
+    return await this.postSigned('/ws/teacher/courseware/ChapterAndKnowledge/selectChapterByDirIdAndParentId', {
+      dirId: String(dirId), parentId: String(parentId || ''),
+    });
+  }
+
+  async saveSystemExerciseHistory({ gradeCode, subjectCode, bookId = '', bookName = '' } = {}) {
+    return await this.postSigned('/ws/student/exercise/doexercise/saveDoExercisHistory', {
+      studentId: String(this.session.studentId || ''),
+      subjectCode: String(subjectCode || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''),
+      bookId: String(bookId || ''), bookName: String(bookName || ''),
+    });
+  }
+
+  async startSystemExercise({ subjectCode, tagIds, bookId = '', type = 1, nodeCodes = '', gradeCode } = {}) {
+    return await this.postSigned('/ws/student/exercise/doexercise/getQuestions', {
+      studentId: String(this.session.studentId || ''),
+      subjectCode: String(subjectCode || ''), tagIds: String(tagIds || ''),
+      bookId: String(bookId || ''), type: String(type), nodeCodes: String(nodeCodes || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''),
+    });
+  }
+
+  async submitSystemExercise({ questionIds, subjectCode, gradeCode, bookId = '', doTime = 0, teacherExamId } = {}) {
+    return await this.postSigned('/ws/student/homework/homeworkError/brushingSubmit', {
+      questionIds: String(questionIds || ''), studentId: String(this.session.studentId || ''),
+      subjectCode: String(subjectCode || ''), gradeCode: String(gradeCode || this.session.gradeCode || ''),
+      bookId: String(bookId || ''), doTime: String(Math.max(0, Number(doTime) || 0)),
+      teacherExamId: String(teacherExamId || ''),
+    });
+  }
+
+  getSystemExerciseQuestionUrl({ questionId, subjectCode, difficulty = '', showAnswer = 0, auth = '' } = {}) {
+    const studentId = String(this.session.studentId || '');
+    const classId = String(this.session.classId || this.session.groupId || '');
+    const unitId = String(this.session.unitId || '');
+    const salt = nowSalt();
+    const judgeAnswer = showAnswer ? 1 : 0;
+    const type = 2;
+    const keySource = showAnswer
+      ? '1'
+      : `0${questionId}${studentId}1${subjectCode}${classId}${unitId}0${judgeAnswer}${type}${salt}${this.secretKey}`;
+    const url = new URL('https://www.msyk.cn/webview/question/singleDoErrorQuestion');
+    Object.entries({ showAnswer: showAnswer ? 1 : 0, questionId, studentId, isFinished: 1,
+      subjectCode, classId, auth, unitId, judgeAnswer, type, salt, key: md5Hex(keySource) })
+      .forEach(([key, value]) => url.searchParams.set(key, String(value ?? '')));
+    if (!showAnswer && difficulty !== '') url.searchParams.set('difficulty', String(difficulty));
+    return url.toString();
+  }
+
+  async getSchoolExerciseAccess({ subjectCodeList = [], gradeCode } = {}) {
+    return await this.postSigned('/ws/student/schoolDoExercise/intoSchoolDoExercise', {
+      subjectCodeList: typeof subjectCodeList === 'string' ? subjectCodeList : JSON.stringify(subjectCodeList),
+      unitId: String(this.session.schoolId || this.session.unitId || ''),
+      userId: String(this.session.studentId || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''),
+    });
+  }
+
+  async getSchoolExerciseBooks({ subjectCode, gradeCode } = {}) {
+    return await this.postSigned('/ws/student/schoolDoExercise/getSchoolBooks', {
+      studentId: String(this.session.studentId || ''),
+      unitId: String(this.session.schoolId || this.session.unitId || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''),
+      subjectCode: String(subjectCode || ''),
+    });
+  }
+
+  async getSchoolExerciseChapters({ codeLevel = 0, dirId, nodeCode = '', subjectCode, gradeCode } = {}) {
+    return await this.postSigned('/ws/student/schoolDoExercise/getSchoolDoexerciseTree', {
+      codeLevel: String(codeLevel), dirId: String(dirId || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''), nodeCode: String(nodeCode || ''),
+      subjectCode: String(subjectCode || ''), unitId: String(this.session.schoolId || this.session.unitId || ''),
+      userId: String(this.session.studentId || ''),
+    });
+  }
+
+  async getSchoolExerciseQuestions({ dirId, tagId, subjectCode, gradeCode } = {}) {
+    return await this.postSigned('/ws/student/schoolDoExercise/sequenceDoExercise', {
+      studentId: String(this.session.studentId || ''), unitId: String(this.session.schoolId || this.session.unitId || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''), subjectCode: String(subjectCode || ''),
+      dirId: String(dirId || ''), tagId: String(tagId || ''),
+    });
+  }
+
+  async saveSchoolExerciseResult({ doTime = 0, questionRef = [], subjectCode, gradeCode,
+    errorNum = 0, correctNum = 0, dirId } = {}) {
+    return await this.postSigned('/ws/student/schoolDoExercise/saveOneDoExerciseResult', {
+      doTime: String(Math.max(0, Number(doTime) || 0)),
+      questionRef: typeof questionRef === 'string' ? questionRef : JSON.stringify(questionRef),
+      subjectCode: String(subjectCode || ''), gradeCode: String(gradeCode || this.session.gradeCode || ''),
+      errorNnm: String(Math.max(0, Number(errorNum) || 0)), correctNum: String(Math.max(0, Number(correctNum) || 0)),
+      studnetId: String(this.session.studentId || ''), dirId: String(dirId || ''),
+    });
+  }
+
+  getSchoolExerciseQuestionUrl({ questionId, showAnswer = 0, myAnswer = '', gradeCode } = {}) {
+    const url = new URL('https://www.msyk.cn/webview/question/singleDoSchoolExercise');
+    url.searchParams.set('questionId', String(questionId || ''));
+    url.searchParams.set('showAnswer', showAnswer ? '1' : '0');
+    if (showAnswer && myAnswer) url.searchParams.set('myAnswer', String(myAnswer));
+    url.searchParams.set('unitId', String(this.session.schoolId || this.session.unitId || ''));
+    url.searchParams.set('gradeCode', String(gradeCode || this.session.gradeCode || ''));
+    url.searchParams.set('classId', String(this.session.classId || this.session.groupId || ''));
+    url.searchParams.set('judgeAnswer', '0');
+    return url.toString();
+  }
+
+  async getStudyCircleQuestions({
+    scope = 'square',
+    subjectCode = '',
+    startTime = '',
+    endTime = '',
+    endQuestionType = '',
+    onlyShowPublic = '',
+    pageIndex = 1,
+    pageSize = 20,
+  } = {}) {
+    const userId = this.session.studentId;
+    const unitId = this.session.unitId;
+    if (!userId) throw new Error('学习圈缺少 studentId');
+    if (!unitId) throw new Error('学习圈缺少 unitId');
+
+    const mine = scope === 'mine';
+    const params = {
+      userId: String(userId),
+      unitId: String(unitId),
+      subjectCode: String(subjectCode || ''),
+      startTime: String(startTime || ''),
+      endTime: String(endTime || ''),
+      pageIndex: String(pageIndex),
+      pageSize: String(pageSize),
+    };
+    if (mine) {
+      params.ownerType = '1';
+      params.endQuestionType = String(endQuestionType || '');
+      params.onlyShowPublic = String(onlyShowPublic || '');
+    }
+
+    return await this.postStudyCenter(
+      mine
+        ? '/ws/submitQuestion/getSubmitQuestion'
+        : '/ws/submitQuestion/getPublicSubmitQuestion',
+      params
+    );
+  }
+
+  async getStudyCircleAuthority({ unitId } = {}) {
+    const uid = String(unitId || this.session.unitId || '').trim();
+    if (!uid) throw new Error('学习圈权限检查缺少 unitId');
+    return await this.postStudyCenter('/ws/submitQuestion/studentSubmitQuestionAuthority', {
+      unitId: uid,
+    });
+  }
+
+  async getStudyCircleProjects({
+    subjectCode = '', projectType = 0, sortType = 0, pageIndex = 1, pageSize = 18,
+  } = {}) {
+    return await this.postStudyCenter('/ws/teacher/project/studentGetProjectList', {
+      userId: String(this.session.studentId || ''),
+      subjectCode: String(subjectCode || ''),
+      projectType: String(Number(projectType) || 0),
+      sortType: String(Number(sortType) === 1 ? 1 : 0),
+      pageIndex: String(pageIndex),
+      pageSize: String(pageSize),
+    });
+  }
+
+  async getStudyCircleCases({
+    subjectCode = '', startTime = '', endTime = '', topType = 0,
+    pageIndex = 1, pageSize = 20,
+  } = {}) {
+    return await this.postStudyCenter('/ws/typicalCase/teacher/listCase', {
+      startTime: String(startTime || ''),
+      endTime: String(endTime || ''),
+      subjectCode: String(subjectCode || ''),
+      classId: String(this.session.classId || this.session.groupId || ''),
+      topType: String(Number(topType) || 0),
+      pageIndex: String(pageIndex),
+      pageSize: String(pageSize),
+      userId: String(this.session.studentId || ''),
+      unitId: String(this.session.unitId || ''),
+      userType: '1',
+    });
+  }
+
+  async getStudyCircleCaseDetail({ uuid, caseType = 1 } = {}) {
+    const id = String(uuid || '').trim();
+    if (!id) throw new Error('案例详情缺少 uuid');
+    return await this.postStudyCenter('/ws/typicalCase/student/getCaseDetail', {
+      uuid: id,
+      userId: String(this.session.studentId || ''),
+      caseType: String(Number(caseType) || 1),
+      userType: '1',
+      unitId: String(this.session.unitId || ''),
+    });
+  }
+
+  async praiseStudyCircleCase({ uuid, isPraise = 1 } = {}) {
+    const id = String(uuid || '').trim();
+    if (!id) throw new Error('案例点赞缺少 uuid');
+    return await this.postStudyCenter('/ws/typicalCase/student/modifyPraise', {
+      typicalCaseUuid: id,
+      unitId: String(this.session.unitId || ''),
+      userId: String(this.session.studentId || ''),
+      isPraise: String(Number(isPraise) === 1 ? 1 : 0),
+    });
+  }
+
+  async getStudyCircleProjectDetail({ projectUuId } = {}) {
+    const id = String(projectUuId || '').trim();
+    if (!id) throw new Error('课题详情缺少 projectUuId');
+    return await this.postStudyCenter('/ws/teacher/project/studentGetProjectInfo', {
+      studentId: String(this.session.studentId || ''),
+      projectUuId: id,
+      unitId: String(this.session.unitId || ''),
+    });
+  }
+
+  async getStudyCircleProjectChat({ projectUuId, groupUuId, pageIndex = 1, submitTime = '' } = {}) {
+    return await this.postStudyCenter('/ws/teacher/discussionGroup/getChitchatList', {
+      userId: String(this.session.studentId || ''),
+      groupUuId: String(groupUuId || '').trim(),
+      projectUuId: String(projectUuId || '').trim(),
+      unitId: String(this.session.unitId || ''),
+      pageIndex: String(pageIndex),
+      submitTime: String(submitTime || ''),
+      pageSize: '30',
+    });
+  }
+
+  async sendStudyCircleProjectChat({ projectUuId, groupUuId, content, uuid, sendTime } = {}) {
+    const text = String(content || '').trim();
+    if (!text) throw new Error('请输入讨论内容');
+    return await this.postStudyCenter('/ws/teacher/discussionGroup/studentSendInformation', {
+      studentId: String(this.session.studentId || ''),
+      groupId: String(groupUuId || '').trim(),
+      projectUuId: String(projectUuId || '').trim(),
+      resourceType: '0',
+      content: text,
+      sendTime: String(sendTime || Date.now()),
+      longTime: '0',
+      uuid: String(uuid || `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    });
+  }
+
+  async getStudyCircleProjectSummary({ projectUuId, groupUuId = '' } = {}) {
+    const group = String(groupUuId || '').trim();
+    return await this.postStudyCenter(
+      group
+        ? '/ws/teacher/project/getProjectGroupSummarizeInfo'
+        : '/ws/teacher/project/getProjectSummarizeInfo',
+      group
+        ? { projectUuId: String(projectUuId || ''), groupUuId: group, unitId: String(this.session.unitId || '') }
+        : { projectUuId: String(projectUuId || ''), unitId: String(this.session.unitId || '') }
+    );
+  }
+
+  async getStudyCircleProjectState({ projectUuId, groupUuId } = {}) {
+    return await this.postStudyCenter('/ws/teacher/project/getSpeechState', {
+      projectUuId: String(projectUuId || ''), groupUuId: String(groupUuId || ''),
+      studentId: String(this.session.studentId || ''), unitId: String(this.session.unitId || ''),
+    });
+  }
+
+  async saveStudyCircleProjectResult({ projectUuId, groupUuId, summarizeUuId = '', content = '',
+    resources = [], submitType = 1 } = {}) {
+    if (!String(content || '').trim() && (!Array.isArray(resources) || resources.length === 0)) {
+      throw new Error('请输入小组成果或添加图片');
+    }
+    return await this.postStudyCenter('/ws/teacher/project/studentSaveSummarize', {
+      summarizeUuId: String(summarizeUuId || ''), projectUuId: String(projectUuId || ''),
+      groupUuId: String(groupUuId || ''), content: String(content || '').trim(),
+      studentId: String(this.session.studentId || ''), resourceJsonStr: JSON.stringify(resources || []),
+      submitType: Number(submitType) === 1 ? '1' : '0',
+    });
+  }
+
+  async getStudyCircleQuestionDetail({ submitQuestionUuId } = {}) {
+    const uuid = String(submitQuestionUuId || '').trim();
+    if (!uuid) throw new Error('问题详情缺少 submitQuestionUuId');
+    return await this.postStudyCenter('/ws/submitQuestion/getSubmitQuestionInfo', {
+      submitQuestionUuId: uuid,
+      unitId: String(this.session.unitId || ''),
+    });
+  }
+
+  async getStudyCircleChat({ submitQuestionUuId } = {}) {
+    const uuid = String(submitQuestionUuId || '').trim();
+    if (!uuid) throw new Error('问题对话缺少 submitQuestionUuId');
+    return await this.postStudyCenter('/ws/chattingRecords/getChattingRecords', {
+      submitQuestionUuId: uuid,
+      unitId: String(this.session.unitId || ''),
+      userId: String(this.session.studentId || ''),
+    });
+  }
+
+  async addStudyCircleQuestion({
+    content,
+    teacherId,
+    subjectCode,
+    classId,
+    homeworkName = '',
+    orderNum = '0',
+    questionId = '',
+    picUrls = [],
+    audioList = [],
+  } = {}) {
+    const text = String(content || '').trim() || '老师，求解答';
+    const tid = String(teacherId || '').trim();
+    const subject = String(subjectCode || '').trim();
+    const groupId = String(classId || this.session.classId || this.session.groupId || '').trim();
+    if (!tid || !subject) throw new Error('请选择提问科目和教师');
+    if (!groupId) throw new Error('提问缺少班级 ID，请重新登录');
+
+    return await this.postStudyCenter('/ws/submitQuestion/addSubmitQuestion', {
+      studentId: String(this.session.studentId || ''),
+      content: text,
+      picUrls: JSON.stringify(Array.isArray(picUrls) ? picUrls : []),
+      aduioList: JSON.stringify(Array.isArray(audioList) ? audioList : []),
+      unitId: String(this.session.unitId || ''),
+      homeworkName: String(homeworkName || ''),
+      orderNum: String(orderNum || '0'),
+      teacherId: tid,
+      subjectCode: subject,
+      questionId: String(questionId || ''),
+      classId: groupId,
+    });
+  }
+
+  async addStudyCircleReply({
+    submitQuestionUuId,
+    content,
+    picUrls = [],
+    audioList = [],
+    showAnalysis = 0,
+  } = {}) {
+    const uuid = String(submitQuestionUuId || '').trim();
+    const text = String(content || '').trim();
+    if (!uuid) throw new Error('回复缺少 submitQuestionUuId');
+    if (!text && !picUrls.length && !audioList.length) throw new Error('请输入回复内容或添加附件');
+
+    return await this.postStudyCenter('/ws/chattingRecords/addChattingRecord', {
+      userId: String(this.session.studentId || ''),
+      ownerType: '1',
+      content: text,
+      picUrls: JSON.stringify(Array.isArray(picUrls) ? picUrls : []),
+      aduioList: JSON.stringify(Array.isArray(audioList) ? audioList : []),
+      submitQuestionUuIds: uuid,
+      unitId: String(this.session.unitId || ''),
+      showAnalysis: String(Number(showAnalysis) || 0),
+    });
+  }
+
+  async praiseStudyCircleQuestion({ submitQuestionUuId, praiseType = 1 } = {}) {
+    const uuid = String(submitQuestionUuId || '').trim();
+    if (!uuid) throw new Error('点赞缺少 submitQuestionUuId');
+    return await this.postStudyCenter('/ws/submitQuestion/praise', {
+      userId: String(this.session.studentId || ''),
+      ownerType: '1',
+      unitId: String(this.session.unitId || ''),
+      submitQuestionUuId: uuid,
+      praiseType: String(Number(praiseType) === 0 ? 0 : 1),
+    });
+  }
+
+  async setStudyCircleQuestionPublic({ submitQuestionUuId, isPublic } = {}) {
+    const uuid = String(submitQuestionUuId || '').trim();
+    if (!uuid) throw new Error('公开问题缺少 submitQuestionUuId');
+    return await this.postStudyCenter('/ws/submitQuestion/isPublicSubmitQuestion', {
+      submitQuestionUuIds: JSON.stringify([uuid]), unitId: String(this.session.unitId || ''),
+      type: Number(isPublic) === 1 ? '1' : '0',
+    });
+  }
+
+  async endStudyCircleQuestion({ submitQuestionUuId } = {}) {
+    const uuid = String(submitQuestionUuId || '').trim();
+    if (!uuid) throw new Error('结束问题缺少 submitQuestionUuId');
+    return await this.postStudyCenter('/ws/submitQuestion/endSubmitQuestion', {
+      submitQuestionUuIds: JSON.stringify([uuid]), unitId: String(this.session.unitId || ''),
+    });
+  }
+
+  async deleteStudyCircleQuestion({ submitQuestionUuId } = {}) {
+    const uuid = String(submitQuestionUuId || '').trim();
+    if (!uuid) throw new Error('删除问题缺少 submitQuestionUuId');
+    return await this.postStudyCenter('/ws/submitQuestion/delSubmitQuestion', {
+      submitQuestionUuIds: JSON.stringify([uuid]), unitId: String(this.session.unitId || ''), type: '2',
+    });
+  }
+
   // 作业列表
   async getHomeworkList({
     studentId,
@@ -479,6 +956,31 @@ class ApiClient {
     };
 
     return await this.postSigned('/ws/student/homework/studentHomework/getHomeworkList', params);
+  }
+
+  async withdrawStudentHomework({ homeworkId, studentId, unitId } = {}) {
+    const id = String(homeworkId || '').trim();
+    const sid = String(studentId || this.session.studentId || '').trim();
+    const uid = String(unitId || this.session.unitId || '').trim();
+    if (!id) throw new Error('撤回作业缺少 homeworkId');
+    if (!sid || !uid) throw new Error('撤回作业缺少学生或学校信息');
+    return await this.postSigned('/ws/student/homework/studentHomework/studentWithdrawHomework', {
+      homeworkId: id, studentId: sid, unitId: uid,
+    });
+  }
+
+  async changePassword({ userId, oldPassword, newPassword } = {}) {
+    const uid = String(userId || this.session.studentId || '').trim();
+    const oldValue = String(oldPassword || '').trim();
+    const newValue = String(newPassword || '').trim();
+    if (!uid) throw new Error('修改密码缺少用户信息');
+    if (!oldValue) throw new Error('请输入原密码');
+    if (newValue.length < 6 || newValue.length > 18) throw new Error('新密码长度应为 6–18 位');
+    return await this.postSigned('/ws/app/changePassword', {
+      userId: uid,
+      newPassword: newValue,
+      oldPassword: oldValue,
+    });
   }
 
   async statisticUsedInfo({ studentId } = {}) {
@@ -908,6 +1410,28 @@ class ApiClient {
       quesNum: String(quesNum ?? registration.quesNum ?? ''),
       durationTime: String(durationTime || ''),
     };
+  }
+
+  // 学习圈附件只需要直传资源，不登记为作业答题卡答案。
+  async uploadStudyCircleMedia({ base64, ext, contentType, mediaType = 0 } = {}) {
+    const type = Number(mediaType);
+    if (![0, 1].includes(type)) throw new Error('学习圈仅支持图片或音频附件');
+    const extension = normalizeStudyCircleExtension(ext, type);
+    const key = createStudyCircleObjectKey(extension);
+    const ossData = (await this.getOssParams()).data;
+    const uploadRes = await this.uploadToOss({
+      base64,
+      key,
+      accessKeyId: ossData.AccessKeyId,
+      accessKeySecret: ossData.AccessKeySecret,
+      securityToken: ossData.SecurityToken,
+      contentType: contentType || (type === 0 ? 'image/jpeg' : 'audio/mpeg'),
+    });
+    if (uploadRes.status < 200 || uploadRes.status >= 300) {
+      const detail = String(uploadRes.data || '').replace(/\s+/g, ' ').slice(0, 240);
+      throw new Error(`OSS上传失败 HTTP ${uploadRes.status}${detail ? `: ${detail}` : ''}`);
+    }
+    return { url: OSS_PUBLIC_BASE + key, key, mediaType: type };
   }
 
   // 一站式上传图片：获取OSS凭证 → OSS直传 → saveSubjectivesCardAnswer

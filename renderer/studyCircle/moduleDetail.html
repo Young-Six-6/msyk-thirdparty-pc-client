@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>学习圈详情</title>
+  <link rel="stylesheet" href="../common/theme.css">
+  <link rel="stylesheet" href="./studyCircle.css">
+  <link rel="stylesheet" href="./moduleDetail.css">
+</head>
+<body data-page="study-circle-detail">
+  <header class="circle-header">
+    <button class="icon-button" id="backBtn" type="button" title="返回" aria-label="返回">←</button>
+    <h1 id="pageTitle">详情</h1>
+    <button class="icon-button" id="refreshBtn" type="button" title="刷新" aria-label="刷新">↻</button>
+  </header>
+  <main class="module-detail-main">
+    <div class="status" id="status" role="status">正在加载...</div>
+    <article class="detail-surface" id="detail" hidden></article>
+    <section class="project-groups" id="groupSection" hidden>
+      <h2>研究小组</h2>
+      <div class="group-list" id="groupList"></div>
+    </section>
+    <section class="project-chat" id="chatSection" hidden>
+      <div class="section-title"><h2 id="chatTitle">小组讨论</h2><div><button class="secondary-button" id="resultBtn" type="button" hidden>上传成果</button> <button class="secondary-button" id="summaryBtn" type="button" hidden>查看总结</button></div></div>
+      <div class="chat-list" id="chatList"></div>
+      <form class="chat-composer" id="chatForm">
+        <textarea id="chatInput" rows="2" maxlength="1000" placeholder="参与小组讨论"></textarea>
+        <button class="primary-button" id="sendBtn" type="submit">发送</button>
+      </form>
+    </section>
+    <section class="project-summary" id="summarySection" hidden></section>
+  </main>
+  <dialog class="image-viewer" id="imageViewer">
+    <button class="icon-button" id="imageCloseBtn" type="button" title="关闭" aria-label="关闭">×</button>
+    <img id="viewerImage" alt="材料图片">
+  </dialog>
+  <dialog class="composer" id="resultDialog">
+    <form id="resultForm">
+      <header><h2>小组成果</h2><button class="icon-button" id="resultCloseBtn" type="button" aria-label="关闭">×</button></header>
+      <label><span>成果说明</span><textarea id="resultContent" rows="7" maxlength="1000" placeholder="请输入小组成果，限制 1000 字"></textarea></label>
+      <section class="attachment-composer">
+        <div class="attachment-tools"><button class="secondary-button" id="resultImageBtn" type="button">添加图片</button><span>最多 9 张</span></div>
+        <input class="file-input" id="resultImageInput" type="file" accept="image/*" multiple>
+        <input class="file-input" id="resultAudioInput" type="file" accept="audio/*">
+        <div class="attachment-list" id="resultAttachments" hidden></div>
+        <div class="resource-list" id="existingResultImages"></div>
+      </section>
+      <footer><button class="secondary-button" id="resultDraftBtn" type="button">保存草稿</button><button class="primary-button" id="resultSubmitBtn" type="submit">上传成果</button></footer>
+    </form>
+  </dialog>
+  <script src="../common/theme.js"></script>
+  <script src="../common/native-android.js?v=1.3.0"></script>
+  <script src="../common/platform.js?v=1.3.0"></script>
+  <script src="../common/study-circle-access.js"></script>
+  <script src="./attachments.js"></script>
+  <script src="./moduleDetail.js"></script>
+</body>
+</html>

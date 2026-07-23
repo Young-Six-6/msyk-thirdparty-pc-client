@@ -25,6 +25,7 @@ body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--t
 .tile:hover { border-color: var(--accent) }
 .tile.primary { background: color-mix(in srgb, var(--primary) 12%, transparent); border-color: color-mix(in srgb, var(--primary) 35%, transparent) }
 .tile-title { font-weight: 900 }
+.struck-label { text-decoration: line-through; text-decoration-thickness: 1.5px }
 .tile-sub { margin-top: 6px; color: var(--muted); font-size: 12px }
 
 .debug { margin-top: 12px; opacity: .9 }

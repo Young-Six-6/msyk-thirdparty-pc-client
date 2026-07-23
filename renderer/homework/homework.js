@@ -248,13 +248,14 @@ function renderList(data) {
     const count = it.totalCount ?? it.questionNum ?? '';
     const endTime = it.endTimeStr || formatTime(it.endTime) || '';
     const hwId = it.homeworkId || it.id || '';
+    const studentHomeworkId = it.studentHomeworkId || it.id || it.homeworkId || '';
     const modifyNum = it.modifyNum ?? it.modifyTimes ?? 0;
 
     const hwType = Number(it.homeworkType ?? it.type ?? -1); //homeworkType 起作用
     const btnText = state.statu === 1 ? '去做作业' : '查看';
 
     return `
-      <div class="card" data-id="${hwId}" data-mod="${modifyNum}" data-type="${hwType}">
+      <div class="card" data-id="${escapeHtml(String(hwId))}" data-student-homework-id="${escapeHtml(String(studentHomeworkId))}" data-mod="${modifyNum}" data-type="${hwType}">
         <div class="l">
           <div class="name">${escapeHtml(title)}</div>
           <div class="meta">
@@ -268,6 +269,7 @@ function renderList(data) {
         <div class="r">
           <div class="badge">statu=${state.statu}</div>
           <button class="primary doBtn">${btnText}</button>
+          ${state.statu === 2 ? '<button class="danger withdrawBtn" type="button">撤回提交</button>' : ''}
         </div>
       </div>
     `;
@@ -442,6 +444,39 @@ function renderList(data) {
           return;
         }
         window.PrimaryPageTransition.open(`../homeworkDetail/index.html?url=${encodeURIComponent(resp.data.url)}&from=${listFrom}`);
+      }
+    });
+  });
+
+  list.querySelectorAll('.withdrawBtn').forEach((button) => {
+    button.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      const card = event.target.closest('.card');
+      const homeworkId = card?.dataset?.studentHomeworkId;
+      if (!homeworkId || button.disabled) return;
+      if (!confirm('撤回后作业将回到“新作业”，确认撤回提交？')) return;
+
+      button.disabled = true;
+      try {
+        const response = await window.msykAPI.withdrawHomework({ homeworkId });
+        if (!response || response.code !== 200) {
+          throw new Error(response?.msg || response?.raw || '撤回失败');
+        }
+
+        const data = response.data;
+        if (data && typeof data === 'object') {
+          const code = String(data.code ?? '10000');
+          if (code && code !== '10000') {
+            throw new Error(data.message || data.msg || `撤回失败 (${code})`);
+          }
+        }
+
+        alert('作业已撤回至新作业');
+        await load();
+      } catch (error) {
+        alert(error?.message || '撤回失败');
+      } finally {
+        button.disabled = false;
       }
     });
   });

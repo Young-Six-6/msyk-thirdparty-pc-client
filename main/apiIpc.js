@@ -100,6 +100,16 @@ function registerApiIpc(ipcMain, apiClient) {
     }
   });
 
+  ipcMain.handle('account:changePassword', async (event, payload = {}) => {
+    try {
+      const { status, data } = await apiClient.changePassword(payload);
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
   ipcMain.handle('hw:subjects', async () => {
     try {
       const { status, data } = await apiClient.getHomeworkSubjects();
@@ -141,6 +151,76 @@ function registerApiIpc(ipcMain, apiClient) {
     }
   });
 
+  const studyCircleHandler = (channel, action) => {
+    ipcMain.handle(channel, async (event, payload = {}) => {
+      try {
+        const { status, data } = await action(payload);
+        if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+        return { code: 200, data };
+      } catch (e) {
+        return { code: 500, msg: e?.message || String(e) };
+      }
+    });
+  };
+
+  studyCircleHandler('studyCircle:list', (payload) => apiClient.getStudyCircleQuestions(payload));
+  studyCircleHandler('studyCircle:authority', (payload) => apiClient.getStudyCircleAuthority(payload));
+  studyCircleHandler('studyCircle:projects', (payload) => apiClient.getStudyCircleProjects(payload));
+  studyCircleHandler('studyCircle:cases', (payload) => apiClient.getStudyCircleCases(payload));
+  studyCircleHandler('studyCircle:caseDetail', (payload) => apiClient.getStudyCircleCaseDetail(payload));
+  studyCircleHandler('studyCircle:casePraise', (payload) => apiClient.praiseStudyCircleCase(payload));
+  studyCircleHandler('studyCircle:projectDetail', (payload) => apiClient.getStudyCircleProjectDetail(payload));
+  studyCircleHandler('studyCircle:projectChat', (payload) => apiClient.getStudyCircleProjectChat(payload));
+  studyCircleHandler('studyCircle:projectSend', (payload) => apiClient.sendStudyCircleProjectChat(payload));
+  studyCircleHandler('studyCircle:projectSummary', (payload) => apiClient.getStudyCircleProjectSummary(payload));
+  studyCircleHandler('studyCircle:projectState', (payload) => apiClient.getStudyCircleProjectState(payload));
+  studyCircleHandler('studyCircle:projectResultSave', (payload) => apiClient.saveStudyCircleProjectResult(payload));
+  studyCircleHandler('studyCircle:detail', (payload) => apiClient.getStudyCircleQuestionDetail(payload));
+  studyCircleHandler('studyCircle:chat', (payload) => apiClient.getStudyCircleChat(payload));
+  studyCircleHandler('studyCircle:addQuestion', (payload) => apiClient.addStudyCircleQuestion(payload));
+  studyCircleHandler('studyCircle:addReply', (payload) => apiClient.addStudyCircleReply(payload));
+  studyCircleHandler('studyCircle:praise', (payload) => apiClient.praiseStudyCircleQuestion(payload));
+  studyCircleHandler('studyCircle:setPublic', (payload) => apiClient.setStudyCircleQuestionPublic(payload));
+  studyCircleHandler('studyCircle:end', (payload) => apiClient.endStudyCircleQuestion(payload));
+  studyCircleHandler('studyCircle:delete', (payload) => apiClient.deleteStudyCircleQuestion(payload));
+
+  const systemExerciseHandler = (channel, action, transform = null) => {
+    ipcMain.handle(channel, async (event, payload = {}) => {
+      try {
+        const result = await action(payload);
+        if (transform) return { code: 200, data: transform(result) };
+        const { status, data } = result;
+        if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+        return { code: 200, data };
+      } catch (e) {
+        return { code: 500, msg: e?.message || String(e) };
+      }
+    });
+  };
+  systemExerciseHandler('systemExercise:history', (p) => apiClient.getSystemExerciseHistory(p));
+  systemExerciseHandler('systemExercise:subjects', (p) => apiClient.getSystemExerciseSubjects(p));
+  systemExerciseHandler('systemExercise:editions', (p) => apiClient.getSystemExerciseEditions(p));
+  systemExerciseHandler('systemExercise:books', (p) => apiClient.getSystemExerciseBooks(p));
+  systemExerciseHandler('systemExercise:defaultBook', (p) => apiClient.getSystemExerciseDefaultBook(p));
+  systemExerciseHandler('systemExercise:nodes', (p) => apiClient.getSystemExerciseNodes(p));
+  systemExerciseHandler('systemExercise:saveHistory', (p) => apiClient.saveSystemExerciseHistory(p));
+  systemExerciseHandler('systemExercise:start', (p) => apiClient.startSystemExercise(p));
+  systemExerciseHandler('systemExercise:submit', (p) => apiClient.submitSystemExercise(p));
+  systemExerciseHandler('systemExercise:questionUrl', (p) => apiClient.getSystemExerciseQuestionUrl(p), (url) => ({ url }));
+  systemExerciseHandler('schoolExercise:access', (p) => apiClient.getSchoolExerciseAccess(p));
+  systemExerciseHandler('schoolExercise:books', (p) => apiClient.getSchoolExerciseBooks(p));
+  systemExerciseHandler('schoolExercise:chapters', (p) => apiClient.getSchoolExerciseChapters(p));
+  systemExerciseHandler('schoolExercise:questions', (p) => apiClient.getSchoolExerciseQuestions(p));
+  systemExerciseHandler('schoolExercise:saveResult', (p) => apiClient.saveSchoolExerciseResult(p));
+  systemExerciseHandler('schoolExercise:questionUrl', (p) => apiClient.getSchoolExerciseQuestionUrl(p), (url) => ({ url }));
+  ipcMain.handle('studyCircle:uploadMedia', async (event, payload = {}) => {
+    try {
+      return { code: 200, data: await apiClient.uploadStudyCircleMedia(payload) };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
   ipcMain.handle('hw:list', async (event, payload = {}) => {
     try {
       const {
@@ -163,6 +243,16 @@ function registerApiIpc(ipcMain, apiClient) {
         endTime: 0,
       });
 
+      if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
+      return { code: 200, data };
+    } catch (e) {
+      return { code: 500, msg: e?.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('hw:withdraw', async (event, payload = {}) => {
+    try {
+      const { status, data } = await apiClient.withdrawStudentHomework(payload);
       if (status !== 200) return { code: 500, msg: `HTTP ${status}`, raw: data };
       return { code: 200, data };
     } catch (e) {

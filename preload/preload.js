@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   apiLogout: () => ipcRenderer.invoke('api:logout'),
   getSavedLogin: () => ipcRenderer.invoke('credentials:getSavedLogin'),
   setSavedLogin: (payload) => ipcRenderer.invoke('credentials:setSavedLogin', payload),
+  changePassword: (payload) => ipcRenderer.invoke('account:changePassword', payload),
 
   // ===== home =====
   homeStats: () => ipcRenderer.invoke('home:stats'),
@@ -40,6 +41,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ===== homework list & view =====
   hwSubjects: () => ipcRenderer.invoke('hw:subjects'),
   hwList: (payload) => ipcRenderer.invoke('hw:list', payload),
+  withdrawHomework: (payload) => ipcRenderer.invoke('hw:withdraw', payload),
   hwCardPreviewUrl: (payload) => ipcRenderer.invoke('hw:cardPreviewUrl', payload),
   hwStatus: (payload) => ipcRenderer.invoke('hw:status', payload),
   hwPptInfo: (payload) => ipcRenderer.invoke('hw:pptInfo', payload),
@@ -48,6 +50,47 @@ contextBridge.exposeInMainWorld('electronAPI', {
   scoreHomeworkTrend: (payload) => ipcRenderer.invoke('score:homeworkTrend', payload),
   scoreHomeworkList: (payload) => ipcRenderer.invoke('score:homeworkList', payload),
   scoreTestList: (payload) => ipcRenderer.invoke('score:testList', payload),
+
+  // ===== study circle =====
+  studyCircleList: (payload) => ipcRenderer.invoke('studyCircle:list', payload),
+  studyCircleAuthority: (payload) => ipcRenderer.invoke('studyCircle:authority', payload),
+  studyCircleProjects: (payload) => ipcRenderer.invoke('studyCircle:projects', payload),
+  studyCircleCases: (payload) => ipcRenderer.invoke('studyCircle:cases', payload),
+  studyCircleCaseDetail: (payload) => ipcRenderer.invoke('studyCircle:caseDetail', payload),
+  studyCircleCasePraise: (payload) => ipcRenderer.invoke('studyCircle:casePraise', payload),
+  studyCircleProjectDetail: (payload) => ipcRenderer.invoke('studyCircle:projectDetail', payload),
+  studyCircleProjectChat: (payload) => ipcRenderer.invoke('studyCircle:projectChat', payload),
+  studyCircleProjectSend: (payload) => ipcRenderer.invoke('studyCircle:projectSend', payload),
+  studyCircleProjectSummary: (payload) => ipcRenderer.invoke('studyCircle:projectSummary', payload),
+  studyCircleProjectState: (payload) => ipcRenderer.invoke('studyCircle:projectState', payload),
+  studyCircleProjectResultSave: (payload) => ipcRenderer.invoke('studyCircle:projectResultSave', payload),
+  studyCircleDetail: (payload) => ipcRenderer.invoke('studyCircle:detail', payload),
+  studyCircleChat: (payload) => ipcRenderer.invoke('studyCircle:chat', payload),
+  studyCircleAddQuestion: (payload) => ipcRenderer.invoke('studyCircle:addQuestion', payload),
+  studyCircleAddReply: (payload) => ipcRenderer.invoke('studyCircle:addReply', payload),
+  studyCirclePraise: (payload) => ipcRenderer.invoke('studyCircle:praise', payload),
+  studyCircleSetPublic: (payload) => ipcRenderer.invoke('studyCircle:setPublic', payload),
+  studyCircleEnd: (payload) => ipcRenderer.invoke('studyCircle:end', payload),
+  studyCircleDelete: (payload) => ipcRenderer.invoke('studyCircle:delete', payload),
+  uploadStudyCircleMedia: (payload) => ipcRenderer.invoke('studyCircle:uploadMedia', payload),
+
+  // ===== system exercise =====
+  systemExerciseHistory: (payload) => ipcRenderer.invoke('systemExercise:history', payload),
+  systemExerciseSubjects: (payload) => ipcRenderer.invoke('systemExercise:subjects', payload),
+  systemExerciseEditions: (payload) => ipcRenderer.invoke('systemExercise:editions', payload),
+  systemExerciseBooks: (payload) => ipcRenderer.invoke('systemExercise:books', payload),
+  systemExerciseDefaultBook: (payload) => ipcRenderer.invoke('systemExercise:defaultBook', payload),
+  systemExerciseNodes: (payload) => ipcRenderer.invoke('systemExercise:nodes', payload),
+  systemExerciseSaveHistory: (payload) => ipcRenderer.invoke('systemExercise:saveHistory', payload),
+  systemExerciseStart: (payload) => ipcRenderer.invoke('systemExercise:start', payload),
+  systemExerciseSubmit: (payload) => ipcRenderer.invoke('systemExercise:submit', payload),
+  systemExerciseQuestionUrl: (payload) => ipcRenderer.invoke('systemExercise:questionUrl', payload),
+  schoolExerciseAccess: (payload) => ipcRenderer.invoke('schoolExercise:access', payload),
+  schoolExerciseBooks: (payload) => ipcRenderer.invoke('schoolExercise:books', payload),
+  schoolExerciseChapters: (payload) => ipcRenderer.invoke('schoolExercise:chapters', payload),
+  schoolExerciseQuestions: (payload) => ipcRenderer.invoke('schoolExercise:questions', payload),
+  schoolExerciseSaveResult: (payload) => ipcRenderer.invoke('schoolExercise:saveResult', payload),
+  schoolExerciseQuestionUrl: (payload) => ipcRenderer.invoke('schoolExercise:questionUrl', payload),
 
   // ===== do homework (API flow) =====
   checkHomeworkEndTime: (payload) => ipcRenderer.invoke('hw:checkHomeworkEndTime', payload),

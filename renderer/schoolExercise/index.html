@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>校本练习</title>
+  <link rel="stylesheet" href="../common/theme.css"><link rel="stylesheet" href="../common/responsive.css">
+  <link rel="stylesheet" href="../systemExercise/systemExercise.css">
+</head>
+<body data-page="school-exercise">
+  <header class="topbar"><button id="backBtn" class="icon-btn" type="button" title="返回">&#8592;</button><div><h1>校本练习</h1><p id="statusText">正在检查开通状态</p></div></header>
+  <main>
+    <section class="controls">
+      <label>科目<select id="subjectSelect"></select></label>
+      <label>校本教材<select id="bookSelect"></select></label>
+    </section>
+    <section class="tree-panel">
+      <div class="tree-head"><button id="upBtn" class="icon-btn" type="button" disabled title="返回上一级">&#8592;</button><div><strong id="treeTitle">选择章节</strong><span id="chapterStats"></span></div></div>
+      <div id="nodeList" class="node-list"></div>
+    </section>
+  </main>
+  <footer class="actionbar"><div id="selectionSummary">请选择一个章节</div><button id="startBtn" class="primary-btn" type="button" disabled>开始练习</button></footer>
+  <script src="../common/theme.js"></script><script src="../common/native-android.js?v=1.3.0"></script><script src="../common/platform.js?v=1.3.0"></script><script src="./schoolExercise.js"></script>
+</body></html>

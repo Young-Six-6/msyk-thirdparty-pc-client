@@ -22,12 +22,15 @@
     'homeStats',
     'hwCardPreviewUrl',
     'hwList',
+    'withdrawHomework',
     'hwPptInfo',
     'hwStatus',
     'hwSubjects',
     'scoreHomeworkList',
     'scoreHomeworkTrend',
     'scoreTestList',
+    'schoolExerciseAccess',
+    'studyCircleAuthority',
   ]);
 
   function frameIsOnPrimaryPage(page, frame) {

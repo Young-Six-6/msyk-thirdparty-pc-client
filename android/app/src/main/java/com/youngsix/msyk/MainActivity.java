@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -194,6 +195,16 @@ public final class MainActivity extends Activity {
                     if (!isMainFrame || message.getType() != WebMessageCompat.TYPE_STRING) return;
                     try {
                         JSONObject request = new JSONObject(message.getData());
+                        if ("postSystemExerciseAnswer".equals(request.optString("action"))) {
+                            String studentId = request.optString("studentId", "");
+                            String questionId = request.optString("questionId", "");
+                            if (inlineViewer != null && !studentId.isEmpty() && !questionId.isEmpty()) {
+                                String script = "javascript:SingleQuestion.postAnswer("
+                                        + JSONObject.quote(studentId) + "," + JSONObject.quote(questionId) + ")";
+                                view.post(() -> inlineViewer.loadUrl(script));
+                            }
+                            return;
+                        }
                         if ("hide".equals(request.optString("action"))) {
                             view.post(this::hideInlineViewer);
                             return;
@@ -224,6 +235,23 @@ public final class MainActivity extends Activity {
         settings.setUserAgentString(settings.getUserAgentString()
                 + " MSYK-Android/" + BuildConfig.VERSION_NAME);
         CookieManager.getInstance().setAcceptThirdPartyCookies(inlineViewer, true);
+        inlineViewer.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void getAnswer(String answer, String questionId, String isCorrect) {
+                try {
+                    JSONObject detail = new JSONObject()
+                            .put("answer", answer).put("questionId", questionId).put("isCorrect", isCorrect);
+                    String script = "window.dispatchEvent(new CustomEvent('msyk-school-answer',{detail:JSON.parse("
+                            + JSONObject.quote(detail.toString()) + ")}));";
+                    webView.post(() -> webView.evaluateJavascript(script, null));
+                } catch (Exception ignored) {
+                }
+            }
+
+            @JavascriptInterface
+            public void isOpenTime() {
+            }
+        }, "jsCallback");
         inlineViewer.setBackgroundColor(Color.parseColor("#0F1226"));
         inlineViewer.setWebViewClient(new WebViewClient() {
             @Override

@@ -67,6 +67,28 @@
     return invoke('uploadHomeworkMediaFinish', { uploadId }, 180000);
   }
 
+  async function uploadStudyCircleMedia(payload = {}) {
+    const base64 = String(payload.base64 || '');
+    if (!base64) return { code: 500, msg: '上传文件为空' };
+
+    const uploadId = `${Date.now()}-${++sequence}`;
+    const metadata = { ...payload, uploadId, expectedLength: base64.length };
+    delete metadata.base64;
+    let result = await invoke('uploadStudyCircleMediaStart', metadata);
+    if (!result || result.code !== 200) return result;
+
+    const chunkCount = Math.ceil(base64.length / UPLOAD_CHUNK_SIZE);
+    for (let index = 0; index < chunkCount; index++) {
+      const start = index * UPLOAD_CHUNK_SIZE;
+      result = await invoke('uploadStudyCircleMediaChunk', {
+        uploadId,
+        chunk: base64.slice(start, start + UPLOAD_CHUNK_SIZE),
+      });
+      if (!result || result.code !== 200) return result;
+    }
+    return invoke('uploadStudyCircleMediaFinish', { uploadId }, 180000);
+  }
+
   bridge.onmessage = (event) => {
     let response = null;
     try {
@@ -368,6 +390,19 @@
       });
       surface.getURL = () => currentUrl;
       surface.insertCSS = () => Promise.resolve();
+      surface.postSystemExerciseAnswer = (studentId, questionId) => {
+        if (!inlineViewerBridge || typeof inlineViewerBridge.postMessage !== 'function') return false;
+        try {
+          inlineViewerBridge.postMessage(JSON.stringify({
+            action: 'postSystemExerciseAnswer',
+            studentId: String(studentId || ''),
+            questionId: String(questionId || ''),
+          }));
+          return true;
+        } catch {
+          return false;
+        }
+      };
       surface.openNativeViewer = () => openNativeViewer(
         currentUrl,
         surface.dataset.viewerTitle || '材料查看',
@@ -395,15 +430,54 @@
     apiLogout: () => invoke('apiLogout'),
     getSavedLogin: () => invoke('getSavedLogin'),
     setSavedLogin: (payload) => invoke('setSavedLogin', payload),
+    changePassword: (payload) => invoke('changePassword', payload),
     homeStats: () => invoke('homeStats'),
     hwSubjects: () => invoke('hwSubjects'),
     hwList: (payload) => invoke('hwList', payload),
+    withdrawHomework: (payload) => invoke('withdrawHomework', payload),
     hwCardPreviewUrl: (payload) => invoke('hwCardPreviewUrl', payload),
     hwStatus: (payload) => invoke('hwStatus', payload),
     hwPptInfo: (payload) => invoke('hwPptInfo', payload),
     scoreHomeworkTrend: (payload) => invoke('scoreHomeworkTrend', payload),
     scoreHomeworkList: (payload) => invoke('scoreHomeworkList', payload),
     scoreTestList: (payload) => invoke('scoreTestList', payload),
+    studyCircleList: (payload) => invoke('studyCircleList', payload),
+    studyCircleAuthority: (payload) => invoke('studyCircleAuthority', payload),
+    studyCircleProjects: (payload) => invoke('studyCircleProjects', payload),
+    studyCircleCases: (payload) => invoke('studyCircleCases', payload),
+    studyCircleCaseDetail: (payload) => invoke('studyCircleCaseDetail', payload),
+    studyCircleCasePraise: (payload) => invoke('studyCircleCasePraise', payload),
+    studyCircleProjectDetail: (payload) => invoke('studyCircleProjectDetail', payload),
+    studyCircleProjectChat: (payload) => invoke('studyCircleProjectChat', payload),
+    studyCircleProjectSend: (payload) => invoke('studyCircleProjectSend', payload),
+    studyCircleProjectSummary: (payload) => invoke('studyCircleProjectSummary', payload),
+    studyCircleProjectState: (payload) => invoke('studyCircleProjectState', payload),
+    studyCircleProjectResultSave: (payload) => invoke('studyCircleProjectResultSave', payload),
+    studyCircleDetail: (payload) => invoke('studyCircleDetail', payload),
+    studyCircleChat: (payload) => invoke('studyCircleChat', payload),
+    studyCircleAddQuestion: (payload) => invoke('studyCircleAddQuestion', payload),
+    studyCircleAddReply: (payload) => invoke('studyCircleAddReply', payload),
+    studyCirclePraise: (payload) => invoke('studyCirclePraise', payload),
+    studyCircleSetPublic: (payload) => invoke('studyCircleSetPublic', payload),
+    studyCircleEnd: (payload) => invoke('studyCircleEnd', payload),
+    studyCircleDelete: (payload) => invoke('studyCircleDelete', payload),
+    uploadStudyCircleMedia,
+    systemExerciseHistory: (payload) => invoke('systemExerciseHistory', payload),
+    systemExerciseSubjects: (payload) => invoke('systemExerciseSubjects', payload),
+    systemExerciseEditions: (payload) => invoke('systemExerciseEditions', payload),
+    systemExerciseBooks: (payload) => invoke('systemExerciseBooks', payload),
+    systemExerciseDefaultBook: (payload) => invoke('systemExerciseDefaultBook', payload),
+    systemExerciseNodes: (payload) => invoke('systemExerciseNodes', payload),
+    systemExerciseSaveHistory: (payload) => invoke('systemExerciseSaveHistory', payload),
+    systemExerciseStart: (payload) => invoke('systemExerciseStart', payload),
+    systemExerciseSubmit: (payload) => invoke('systemExerciseSubmit', payload),
+    systemExerciseQuestionUrl: (payload) => invoke('systemExerciseQuestionUrl', payload),
+    schoolExerciseAccess: (payload) => invoke('schoolExerciseAccess', payload),
+    schoolExerciseBooks: (payload) => invoke('schoolExerciseBooks', payload),
+    schoolExerciseChapters: (payload) => invoke('schoolExerciseChapters', payload),
+    schoolExerciseQuestions: (payload) => invoke('schoolExerciseQuestions', payload),
+    schoolExerciseSaveResult: (payload) => invoke('schoolExerciseSaveResult', payload),
+    schoolExerciseQuestionUrl: (payload) => invoke('schoolExerciseQuestionUrl', payload),
     checkHomeworkEndTime: (payload) => invoke('checkHomeworkEndTime', payload),
     getHomeworkCardInfo: (payload) => invoke('getHomeworkCardInfo', payload),
     getCorrectAnswers: (payload) => invoke('getCorrectAnswers', payload),

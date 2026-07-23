@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>学习圈</title>
+  <link rel="stylesheet" href="../common/theme.css">
+  <link rel="stylesheet" href="./studyCircle.css">
+</head>
+<body data-page="study-circle">
+  <header class="circle-header">
+    <button class="icon-button" id="backBtn" type="button" title="返回首页" aria-label="返回首页">←</button>
+    <h1>学习圈</h1>
+    <button class="icon-button" id="refreshBtn" type="button" title="刷新" aria-label="刷新">↻</button>
+  </header>
+
+  <nav class="module-tabs" aria-label="学习圈模块">
+    <button class="module-tab active" type="button" data-module="questions" disabled>答疑置辩</button>
+    <button class="module-tab struck-label" type="button" data-module="projects" disabled>项目化学习</button>
+    <button class="module-tab struck-label" type="button" data-module="cases" disabled>典型案例</button>
+  </nav>
+
+  <nav class="circle-tabs" aria-label="问题范围">
+    <button class="circle-tab active" type="button" data-scope="square" aria-current="page">问题广场</button>
+    <button class="circle-tab" type="button" data-scope="mine">我的问题<span class="red-dot" id="mineDot" hidden></span></button>
+  </nav>
+
+  <section class="filters" aria-label="筛选问题">
+    <label><span>学科</span><select id="subjectSelect" disabled><option value="">全部学科</option></select></label>
+    <label id="stateField" hidden><span>状态</span><select id="stateSelect"><option value="">全部状态</option><option value="1">进行中</option><option value="2">已结束</option></select></label>
+    <label id="sortField" hidden><span>排序</span><select id="sortSelect"><option value="0">按发布时间</option><option value="1">按截止时间</option></select></label>
+    <label id="startDateField"><span>开始日期</span><input id="startDate" type="date"></label>
+    <label id="endDateField"><span>结束日期</span><input id="endDate" type="date"></label>
+  </section>
+
+  <main class="circle-main">
+    <div class="status" id="status" role="status">正在加载...</div>
+    <div class="question-grid" id="questionGrid"></div>
+    <button class="load-more" id="loadMoreBtn" type="button" hidden>加载更多</button>
+  </main>
+
+  <button class="ask-button" id="askBtn" type="button">提问</button>
+
+  <dialog class="composer" id="askDialog">
+    <form method="dialog" id="askForm">
+      <header><h2>提出问题</h2><button class="icon-button" id="askCloseBtn" type="button" title="关闭" aria-label="关闭">×</button></header>
+      <label><span>提问科目</span><select id="askSubject" required></select></label>
+      <label><span>问题描述</span><textarea id="askContent" rows="7" maxlength="2000" placeholder="请输入问题描述"></textarea></label>
+      <section class="attachment-composer" aria-label="问题附件">
+        <div class="attachment-tools">
+          <button class="secondary-button" id="askImageBtn" type="button">添加图片</button>
+          <button class="secondary-button" id="askAudioBtn" type="button">添加音频</button>
+          <span id="askAttachmentHint">图片和音频合计最多 9 个</span>
+        </div>
+        <input class="file-input" id="askImageInput" type="file" accept="image/*" multiple>
+        <input class="file-input" id="askAudioInput" type="file" accept="audio/*" multiple>
+        <div class="attachment-list" id="askAttachments" hidden></div>
+      </section>
+      <footer><button class="secondary-button" id="askCancelBtn" type="button">取消</button><button class="primary-button" id="askSubmitBtn" type="submit">发布问题</button></footer>
+    </form>
+  </dialog>
+
+  <dialog class="image-viewer" id="imageViewer">
+    <button class="icon-button" id="imageCloseBtn" type="button" title="关闭" aria-label="关闭">×</button>
+    <img id="viewerImage" alt="问题图片">
+  </dialog>
+
+  <script src="../common/theme.js"></script>
+  <script src="../common/native-android.js?v=1.3.0"></script>
+  <script src="../common/platform.js?v=1.3.0"></script>
+  <script src="../common/study-circle-access.js"></script>
+  <script src="./attachments.js"></script>
+  <script src="./studyCircle.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>问题详情</title>
+  <link rel="stylesheet" href="../common/theme.css">
+  <link rel="stylesheet" href="./studyCircle.css">
+  <link rel="stylesheet" href="./detail.css">
+</head>
+<body class="detail-page" data-page="study-circle-detail">
+  <header class="circle-header">
+    <button class="icon-button" id="backBtn" type="button" title="返回学习圈" aria-label="返回学习圈">←</button>
+    <h1>问题详情</h1>
+    <button class="icon-button" id="refreshBtn" type="button" title="刷新" aria-label="刷新">↻</button>
+  </header>
+
+  <main class="detail-main">
+    <div class="status" id="status" role="status">正在加载...</div>
+    <article class="detail-question" id="question" hidden></article>
+    <div class="question-actions" id="questionActions" hidden>
+      <button class="secondary-button" id="publicBtn" type="button">公开问题</button>
+      <button class="secondary-button" id="endBtn" type="button">结束问题</button>
+      <button class="danger-button" id="deleteBtn" type="button">删除问题</button>
+    </div>
+    <section class="discussion" id="discussion" hidden>
+      <header><h2>讨论</h2><span id="replyCount">0 条回复</span></header>
+      <div class="reply-list" id="replyList"></div>
+      <div class="empty-replies" id="emptyReplies" hidden>还没有回复</div>
+    </section>
+  </main>
+
+  <form class="reply-composer" id="replyForm" hidden>
+    <div class="reply-editor">
+      <textarea id="replyContent" rows="2" maxlength="2000" placeholder="写下回复"></textarea>
+      <div class="attachment-tools compact">
+        <button class="secondary-button" id="replyImageBtn" type="button">添加图片</button>
+        <button class="secondary-button" id="replyAudioBtn" type="button">添加音频</button>
+        <span id="replyAttachmentHint">最多 9 个附件</span>
+      </div>
+      <input class="file-input" id="replyImageInput" type="file" accept="image/*" multiple>
+      <input class="file-input" id="replyAudioInput" type="file" accept="audio/*" multiple>
+      <div class="attachment-list" id="replyAttachments" hidden></div>
+    </div>
+    <button class="primary-button" id="replySubmit" type="submit">发送</button>
+  </form>
+
+  <dialog class="image-viewer" id="imageViewer">
+    <button class="icon-button" id="imageCloseBtn" type="button" title="关闭" aria-label="关闭">×</button>
+    <img id="viewerImage" alt="问题图片">
+  </dialog>
+
+  <script src="../common/theme.js"></script>
+  <script src="../common/native-android.js?v=1.3.0"></script>
+  <script src="../common/platform.js?v=1.3.0"></script>
+  <script src="../common/study-circle-access.js"></script>
+  <script src="./attachments.js"></script>
+  <script src="./detail.js"></script>
+</body>
+</html>
