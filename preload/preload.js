@@ -76,6 +76,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ===== system exercise =====
   systemExerciseHistory: (payload) => ipcRenderer.invoke('systemExercise:history', payload),
+  systemExerciseMonthStats: (payload) => ipcRenderer.invoke('systemExercise:monthStats', payload),
+  systemExerciseHistoryStats: (payload) => ipcRenderer.invoke('systemExercise:historyStats', payload),
   systemExerciseSubjects: (payload) => ipcRenderer.invoke('systemExercise:subjects', payload),
   systemExerciseEditions: (payload) => ipcRenderer.invoke('systemExercise:editions', payload),
   systemExerciseBooks: (payload) => ipcRenderer.invoke('systemExercise:books', payload),

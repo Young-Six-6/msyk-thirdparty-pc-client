@@ -489,6 +489,29 @@ class ApiClient {
     });
   }
 
+  async getSystemExerciseMonthStats({ subjectCode, gradeCode } = {}) {
+    return await this.postSigned('/ws/student/exercise/month', {
+      studentId: String(this.session.studentId || ''),
+      subjectCode: String(subjectCode || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''),
+    });
+  }
+
+  async getSystemExerciseHistoryStats({
+    subjectCode,
+    gradeCode,
+    pageNum = 1,
+    creationTime = '',
+  } = {}) {
+    return await this.postSigned('/ws/student/exercise/historyStatistics', {
+      studentId: String(this.session.studentId || ''),
+      subjectCode: String(subjectCode || ''),
+      gradeCode: String(gradeCode || this.session.gradeCode || ''),
+      pageNum: String(Math.max(1, Number(pageNum) || 1)),
+      creationTime: String(creationTime || ''),
+    });
+  }
+
   async getSystemExerciseSubjects({ gradeCode } = {}) {
     const unitId = String(this.session.unitId || '').trim();
     const grade = String(gradeCode || this.session.gradeCode || '').trim();
@@ -557,11 +580,13 @@ class ApiClient {
   }
 
   async submitSystemExercise({ questionIds, subjectCode, gradeCode, bookId = '', doTime = 0, teacherExamId } = {}) {
+    const examId = String(teacherExamId || '').trim();
+    if (!examId) throw new Error('系统练习缺少练习编号');
     return await this.postSigned('/ws/student/homework/homeworkError/brushingSubmit', {
       questionIds: String(questionIds || ''), studentId: String(this.session.studentId || ''),
       subjectCode: String(subjectCode || ''), gradeCode: String(gradeCode || this.session.gradeCode || ''),
       bookId: String(bookId || ''), doTime: String(Math.max(0, Number(doTime) || 0)),
-      teacherExamId: String(teacherExamId || ''),
+      teacherExamId: examId,
     });
   }
 

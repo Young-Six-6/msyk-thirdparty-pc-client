@@ -18,6 +18,22 @@ function payloadOf(response) {
   return value || {};
 }
 
+function questionIdsOf(data) {
+  const candidates = [
+    data?.questionList,
+    data?.questions,
+    data?.data?.questionList,
+    data?.data?.questions,
+  ];
+  const list = candidates.find(Array.isArray) || [];
+  return list.map((item) => {
+    if (item && typeof item === 'object') {
+      return String(item.questionId || item.id || item.uuid || '').trim();
+    }
+    return String(item ?? '').trim();
+  }).filter(Boolean);
+}
+
 function setStatus(message, error = false) {
   $('#statusText').textContent = message;
   $('#statusText').style.color = error ? 'var(--danger)' : '';
@@ -231,14 +247,16 @@ async function startExercise() {
       bookId: state.mode === 'chapter' ? state.bookId : '', type: state.mode === 'chapter' ? 1 : 2,
     };
     const data = payloadOf(await window.msykAPI.systemExerciseStart(request));
-    const questions = Array.isArray(data.questions) ? data.questions.map(String) : [];
+    const questions = questionIdsOf(data);
     if (!questions.length) throw new Error(state.mode === 'chapter' ? '所选章节下没有题目' : '所选知识点下没有题目');
+    const teacherExamId = String(data.teacherExamId || data.examId || '').trim();
+    if (!teacherExamId) throw new Error('服务器未返回本次练习编号，请重新开始练习');
     await window.msykAPI.systemExerciseSaveHistory({
       gradeCode: state.gradeCode, subjectCode: state.subjectCode,
       bookId: request.bookId, bookName: state.bookName,
     });
     sessionStorage.setItem('msykSystemExercise', JSON.stringify({
-      ...request, questions, teacherExamId: String(data.teacherExamId || ''),
+      ...request, questions, teacherExamId,
       difficulty: data.difficulty ?? '', studentId: String(state.session.studentId || ''), startedAt: Date.now(),
     }));
     location.href = './do.html';
@@ -248,7 +266,7 @@ async function startExercise() {
   }
 }
 
-$('#backBtn').addEventListener('click', () => history.length > 1 ? history.back() : location.replace('../main/index.html?page=home'));
+$('#backBtn').addEventListener('click', () => location.replace('../main/index.html?page=home'));
 $('#gradeSelect').addEventListener('change', async (event) => { state.gradeCode = event.target.value; state.bookId = ''; await loadSubjects(); await resetRange(); });
 $('#subjectSelect').addEventListener('change', async (event) => { state.subjectCode = event.target.value; state.bookId = ''; await resetRange(); });
 $('#editionSelect').addEventListener('change', async (event) => { clearSelection(); await loadEditionBooks(event.target.value); await loadNodes(''); });
@@ -260,6 +278,14 @@ document.querySelectorAll('[data-mode]').forEach((button) => button.addEventList
   await resetRange();
 }));
 $('#startBtn').addEventListener('click', startExercise);
+$('#historyBtn').addEventListener('click', () => {
+  sessionStorage.setItem('msykSystemExerciseHistoryFilter', JSON.stringify({
+    gradeCode: state.gradeCode,
+    subjectCode: state.subjectCode,
+    subjectName: state.subjects.find((item) => item.code === state.subjectCode)?.name || state.subjectCode,
+  }));
+  location.href = './history.html';
+});
 
 (async () => {
   try {

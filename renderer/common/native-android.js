@@ -463,6 +463,8 @@
     studyCircleDelete: (payload) => invoke('studyCircleDelete', payload),
     uploadStudyCircleMedia,
     systemExerciseHistory: (payload) => invoke('systemExerciseHistory', payload),
+    systemExerciseMonthStats: (payload) => invoke('systemExerciseMonthStats', payload),
+    systemExerciseHistoryStats: (payload) => invoke('systemExerciseHistoryStats', payload),
     systemExerciseSubjects: (payload) => invoke('systemExerciseSubjects', payload),
     systemExerciseEditions: (payload) => invoke('systemExerciseEditions', payload),
     systemExerciseBooks: (payload) => invoke('systemExerciseBooks', payload),

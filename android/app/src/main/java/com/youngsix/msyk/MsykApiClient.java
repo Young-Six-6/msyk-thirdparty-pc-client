@@ -151,6 +151,10 @@ final class MsykApiClient {
                 return studyCircleDelete(payload);
             case "systemExerciseHistory":
                 return systemExerciseHistory(payload);
+            case "systemExerciseMonthStats":
+                return systemExerciseMonthStats(payload);
+            case "systemExerciseHistoryStats":
+                return systemExerciseHistoryStats(payload);
             case "systemExerciseSubjects":
                 return systemExerciseSubjects(payload);
             case "systemExerciseEditions":
@@ -378,6 +382,22 @@ final class MsykApiClient {
         return wrap(postSigned("/ws/student/exercise/doexercise/getDoExercisHistory", params(
                 "studentId", requireSession("studentId"), "gradeCode", exerciseGrade(payload),
                 "unitId", requireSession("unitId"))));
+    }
+
+    private JSONObject systemExerciseMonthStats(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/exercise/month", params(
+                "studentId", requireSession("studentId"),
+                "subjectCode", required(payload, "subjectCode"),
+                "gradeCode", exerciseGrade(payload))));
+    }
+
+    private JSONObject systemExerciseHistoryStats(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/exercise/historyStatistics", params(
+                "studentId", requireSession("studentId"),
+                "subjectCode", required(payload, "subjectCode"),
+                "gradeCode", exerciseGrade(payload),
+                "pageNum", value(payload, "pageNum", "1"),
+                "creationTime", value(payload, "creationTime", ""))));
     }
 
     private JSONObject systemExerciseSubjects(JSONObject payload) throws Exception {

@@ -198,6 +198,8 @@ function registerApiIpc(ipcMain, apiClient) {
     });
   };
   systemExerciseHandler('systemExercise:history', (p) => apiClient.getSystemExerciseHistory(p));
+  systemExerciseHandler('systemExercise:monthStats', (p) => apiClient.getSystemExerciseMonthStats(p));
+  systemExerciseHandler('systemExercise:historyStats', (p) => apiClient.getSystemExerciseHistoryStats(p));
   systemExerciseHandler('systemExercise:subjects', (p) => apiClient.getSystemExerciseSubjects(p));
   systemExerciseHandler('systemExercise:editions', (p) => apiClient.getSystemExerciseEditions(p));
   systemExerciseHandler('systemExercise:books', (p) => apiClient.getSystemExerciseBooks(p));

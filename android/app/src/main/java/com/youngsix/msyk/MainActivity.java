@@ -336,8 +336,35 @@ public final class MainActivity extends Activity {
 
     private void applyInlineViewerTheme(@Nullable Runnable completion) {
         if (inlineViewer == null || inlineViewer.getVisibility() == View.GONE) return;
-        String css = "light".equalsIgnoreCase(inlineViewerTheme) ? "" :
-                "html,body{background:#0f1226!important;color:#eaf2ff!important;}"
+        String layoutCss = "html,body{width:100%!important;min-height:100%!important;margin:0!important;padding:0!important;}"
+                + "body{min-height:100vh!important;box-sizing:border-box!important;overflow-y:auto!important;}"
+                + ".dtk-container,.title-container{width:100%!important;max-width:none!important;box-sizing:border-box!important;}"
+                + "body>.title-container,.dtk-container{min-height:calc(100vh - 2px)!important;}"
+                + "body>.title-container{display:flex!important;flex-direction:column!important;height:100vh!important;}"
+                + "body>.title-container .title-new-list{flex:1 1 0!important;min-height:0!important;display:flex!important;"
+                + "flex-direction:column!important;justify-content:space-evenly!important;}"
+                + "@media(min-width:801px){body>.title-container{overflow-y:auto!important;}"
+                + "body>.title-container .title-new-list{padding-block:16px!important;}}"
+                + "@media(max-width:800px){"
+                + "body>.title-container{min-height:100vh!important;height:auto!important;"
+                + "padding:16px!important;overflow-y:auto!important;}"
+                + ".title-container .title-top-new{font-size:13px!important;line-height:1.5!important;margin-bottom:10px!important;}"
+                + ".title-container .title-new-content{font-size:16px!important;line-height:1.65!important;}"
+                + ".title-new-content img,.right-detail img{max-width:100%!important;height:auto!important;}"
+                + "body>.title-container .title-new-list{flex:1 0 auto!important;gap:12px!important;"
+                + "margin:14px 0!important;justify-content:center!important;}"
+                + ".title-new-list>li{flex:0 0 auto!important;min-height:54px!important;margin:0!important;border-radius:8px!important;}"
+                + ".title-new-list>li .left-selection{flex:0 0 44px!important;width:44px!important;font-size:16px!important;}"
+                + ".title-new-list>li .right-detail{display:flex!important;align-items:center!important;min-width:0!important;"
+                + "margin:12px 12px 12px 0!important;padding-left:12px!important;font-size:16px!important;line-height:1.5!important;}"
+                + ".wxtk-container,.wxtk-container-height{display:block!important;width:100%!important;"
+                + "min-height:100vh!important;height:auto!important;overflow:visible!important;}"
+                + ".wxtk-container .title-container,.wxtk-container .right-fixed{display:block!important;width:100%!important;"
+                + "max-width:none!important;min-height:0!important;height:auto!important;padding:16px!important;"
+                + "border-left:0!important;overflow:visible!important;}}";
+        String themeCss = "light".equalsIgnoreCase(inlineViewerTheme)
+                ? "html,body{background:#fff!important;color:#111827!important;}"
+                : "html,body{background:#0f1226!important;color:#eaf2ff!important;}"
                 + "*{color:inherit!important;background-color:transparent!important;"
                 + "background-image:none!important;border-color:rgba(255,255,255,.15)!important;}"
                 + ".dtk-container,.title-container{background:#161929!important;}"
@@ -346,6 +373,7 @@ public final class MainActivity extends Activity {
                 + ".right-answer-my span,.span-class{background:#1e2a45!important;color:#eaf2ff!important;}"
                 + ".right-answer-my span.active,.span-class.active{background:#2a5298!important;color:#fff!important;}"
                 + "a{color:#9cc8ff!important;}";
+        String css = layoutCss + themeCss;
         String script = "(function(){var s=document.getElementById('__msyk_theme');"
                 + "if(!s){s=document.createElement('style');s.id='__msyk_theme';document.head.appendChild(s);}"
                 + "s.textContent=" + JSONObject.quote(css) + ";"
