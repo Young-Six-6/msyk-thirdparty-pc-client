@@ -44,6 +44,8 @@ public final class MainActivity extends Activity {
     private WebView inlineViewer;
     private String inlineViewerUrl = "";
     private String inlineViewerTheme = "dark";
+    private volatile String pendingAnswerActionId = "";
+    private volatile String pendingAnswerActionResult = "";
     private NativeApiBridge bridge;
     private ValueCallback<Uri[]> fileChooserCallback;
 
@@ -195,13 +197,43 @@ public final class MainActivity extends Activity {
                     if (!isMainFrame || message.getType() != WebMessageCompat.TYPE_STRING) return;
                     try {
                         JSONObject request = new JSONObject(message.getData());
-                        if ("postSystemExerciseAnswer".equals(request.optString("action"))) {
+                        if ("fillSystemExerciseCorrect".equals(request.optString("action"))) {
+                            String id = request.optString("id", "");
                             String studentId = request.optString("studentId", "");
                             String questionId = request.optString("questionId", "");
-                            if (inlineViewer != null && !studentId.isEmpty() && !questionId.isEmpty()) {
+                            String script = request.optString("script", "");
+                            if (inlineViewer != null && !id.isEmpty() && !studentId.isEmpty()
+                                    && !questionId.isEmpty() && !script.isEmpty() && script.length() < 50000) {
+                                view.post(() -> inlineViewer.evaluateJavascript(script, result -> {
+                                    String decoded = result;
+                                    try {
+                                        Object value = new org.json.JSONTokener(result).nextValue();
+                                        if (value instanceof String) decoded = (String) value;
+                                    } catch (Exception ignored) {
+                                    }
+                                    pendingAnswerActionId = id;
+                                    pendingAnswerActionResult = decoded;
+                                    String postScript = "javascript:SingleQuestion.postAnswer("
+                                            + JSONObject.quote(studentId) + "," + JSONObject.quote(questionId) + ")";
+                                    inlineViewer.loadUrl(postScript);
+                                }));
+                            } else {
+                                notifyInlineActionResult(id, "{\"supported\":false,\"filled\":0}");
+                            }
+                            return;
+                        }
+                        if ("postSystemExerciseAnswer".equals(request.optString("action"))) {
+                            String id = request.optString("id", "");
+                            String studentId = request.optString("studentId", "");
+                            String questionId = request.optString("questionId", "");
+                            if (inlineViewer != null && !id.isEmpty() && !studentId.isEmpty() && !questionId.isEmpty()) {
+                                pendingAnswerActionId = id;
+                                pendingAnswerActionResult = "{\"saved\":true}";
                                 String script = "javascript:SingleQuestion.postAnswer("
                                         + JSONObject.quote(studentId) + "," + JSONObject.quote(questionId) + ")";
                                 view.post(() -> inlineViewer.loadUrl(script));
+                            } else {
+                                notifyInlineActionResult(id, "{\"saved\":false,\"message\":\"题目视图未就绪\"}");
                             }
                             return;
                         }
@@ -251,6 +283,17 @@ public final class MainActivity extends Activity {
             @JavascriptInterface
             public void isOpenTime() {
             }
+
+            @JavascriptInterface
+            public void back(String status) {
+                String id = pendingAnswerActionId;
+                String result = pendingAnswerActionResult;
+                pendingAnswerActionId = "";
+                pendingAnswerActionResult = "";
+                if (id.isEmpty()) return;
+                if (result.isEmpty()) result = "{\"saved\":true}";
+                notifyInlineActionResult(id, result);
+            }
         }, "jsCallback");
         inlineViewer.setBackgroundColor(Color.parseColor("#0F1226"));
         inlineViewer.setWebViewClient(new WebViewClient() {
@@ -268,6 +311,7 @@ public final class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 revealInlineViewerAfterTheme(url);
+                notifyInlineViewerReady(url);
                 view.postDelayed(() -> {
                     if (url.equals(inlineViewerUrl)) applyInlineViewerTheme();
                 }, 500);
@@ -278,6 +322,20 @@ public final class MainActivity extends Activity {
         });
         inlineViewer.setVisibility(View.GONE);
         rootView.addView(inlineViewer, new FrameLayout.LayoutParams(1, 1));
+    }
+
+    private void notifyInlineViewerReady(String url) {
+        if (!url.equals(inlineViewerUrl)) return;
+        String script = "window.dispatchEvent(new CustomEvent('msyk-inline-viewer-ready',"
+                + "{detail:{url:" + JSONObject.quote(url) + "}}));";
+        webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    private void notifyInlineActionResult(String id, String result) {
+        if (id == null || id.isEmpty()) return;
+        String script = "window.dispatchEvent(new CustomEvent('msyk-inline-action-result',"
+                + "{detail:{id:" + JSONObject.quote(id) + ",result:" + JSONObject.quote(result) + "}}));";
+        webView.post(() -> webView.evaluateJavascript(script, null));
     }
 
     private void showInlineViewer(JSONObject request, String url) {

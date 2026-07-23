@@ -10,9 +10,21 @@
   const inlineViewerBridge = root.MSYK_INLINE_VIEWER;
 
   const pending = new Map();
+  const pendingInlineActions = new Map();
   const UPLOAD_CHUNK_SIZE = 192 * 1024;
   let sequence = 0;
   let debugEnabled = false;
+
+  root.addEventListener('msyk-inline-action-result', (event) => {
+    const id = String(event.detail?.id || '');
+    const entry = pendingInlineActions.get(id);
+    if (!entry) return;
+    clearTimeout(entry.timeout);
+    pendingInlineActions.delete(id);
+    let result = event.detail?.result;
+    try { result = typeof result === 'string' ? JSON.parse(result) : result; } catch {}
+    entry.resolve(result || { supported: false, filled: 0 });
+  });
 
   function invoke(method, payload = {}, timeoutMs = 90000) {
     const id = `${Date.now()}-${++sequence}`;
@@ -391,17 +403,55 @@
       surface.getURL = () => currentUrl;
       surface.insertCSS = () => Promise.resolve();
       surface.postSystemExerciseAnswer = (studentId, questionId) => {
-        if (!inlineViewerBridge || typeof inlineViewerBridge.postMessage !== 'function') return false;
-        try {
-          inlineViewerBridge.postMessage(JSON.stringify({
-            action: 'postSystemExerciseAnswer',
-            studentId: String(studentId || ''),
-            questionId: String(questionId || ''),
-          }));
-          return true;
-        } catch {
-          return false;
+        if (!inlineViewerBridge || typeof inlineViewerBridge.postMessage !== 'function') {
+          return Promise.resolve({ saved: false, message: 'Android 题目视图未就绪' });
         }
+        const id = `answer-${Date.now()}-${++sequence}`;
+        return new Promise((resolve) => {
+          const timeout = setTimeout(() => {
+            pendingInlineActions.delete(id);
+            resolve({ saved: false, message: '答案保存超时，请检查网络后重试' });
+          }, 15000);
+          pendingInlineActions.set(id, { resolve, timeout });
+          try {
+            inlineViewerBridge.postMessage(JSON.stringify({
+              action: 'postSystemExerciseAnswer',
+              id,
+              studentId: String(studentId || ''),
+              questionId: String(questionId || ''),
+            }));
+          } catch {
+            clearTimeout(timeout);
+            pendingInlineActions.delete(id);
+            resolve({ saved: false, message: '答案保存请求发送失败' });
+          }
+        });
+      };
+      surface.fillSystemExerciseCorrect = (studentId, questionId, script) => {
+        if (!inlineViewerBridge || typeof inlineViewerBridge.postMessage !== 'function') {
+          return Promise.resolve({ supported: false, filled: 0 });
+        }
+        const id = `fill-${Date.now()}-${++sequence}`;
+        return new Promise((resolve) => {
+          const timeout = setTimeout(() => {
+            pendingInlineActions.delete(id);
+            resolve({ supported: false, filled: 0, message: '答案保存超时' });
+          }, 15000);
+          pendingInlineActions.set(id, { resolve, timeout });
+          try {
+            inlineViewerBridge.postMessage(JSON.stringify({
+              action: 'fillSystemExerciseCorrect',
+              id,
+              studentId: String(studentId || ''),
+              questionId: String(questionId || ''),
+              script: String(script || ''),
+            }));
+          } catch {
+            clearTimeout(timeout);
+            pendingInlineActions.delete(id);
+            resolve({ supported: false, filled: 0 });
+          }
+        });
       };
       surface.openNativeViewer = () => openNativeViewer(
         currentUrl,
@@ -473,6 +523,7 @@
     systemExerciseSaveHistory: (payload) => invoke('systemExerciseSaveHistory', payload),
     systemExerciseStart: (payload) => invoke('systemExerciseStart', payload),
     systemExerciseSubmit: (payload) => invoke('systemExerciseSubmit', payload),
+    systemExerciseDetail: (payload) => invoke('systemExerciseDetail', payload),
     systemExerciseQuestionUrl: (payload) => invoke('systemExerciseQuestionUrl', payload),
     schoolExerciseAccess: (payload) => invoke('schoolExerciseAccess', payload),
     schoolExerciseBooks: (payload) => invoke('schoolExerciseBooks', payload),

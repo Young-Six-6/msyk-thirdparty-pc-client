@@ -208,6 +208,7 @@ function registerApiIpc(ipcMain, apiClient) {
   systemExerciseHandler('systemExercise:saveHistory', (p) => apiClient.saveSystemExerciseHistory(p));
   systemExerciseHandler('systemExercise:start', (p) => apiClient.startSystemExercise(p));
   systemExerciseHandler('systemExercise:submit', (p) => apiClient.submitSystemExercise(p));
+  systemExerciseHandler('systemExercise:detail', (p) => apiClient.getSystemExerciseDetail(p));
   systemExerciseHandler('systemExercise:questionUrl', (p) => apiClient.getSystemExerciseQuestionUrl(p), (url) => ({ url }));
   systemExerciseHandler('schoolExercise:access', (p) => apiClient.getSchoolExerciseAccess(p));
   systemExerciseHandler('schoolExercise:books', (p) => apiClient.getSchoolExerciseBooks(p));

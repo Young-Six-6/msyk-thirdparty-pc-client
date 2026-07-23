@@ -86,6 +86,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   systemExerciseSaveHistory: (payload) => ipcRenderer.invoke('systemExercise:saveHistory', payload),
   systemExerciseStart: (payload) => ipcRenderer.invoke('systemExercise:start', payload),
   systemExerciseSubmit: (payload) => ipcRenderer.invoke('systemExercise:submit', payload),
+  systemExerciseDetail: (payload) => ipcRenderer.invoke('systemExercise:detail', payload),
   systemExerciseQuestionUrl: (payload) => ipcRenderer.invoke('systemExercise:questionUrl', payload),
   schoolExerciseAccess: (payload) => ipcRenderer.invoke('schoolExercise:access', payload),
   schoolExerciseBooks: (payload) => ipcRenderer.invoke('schoolExercise:books', payload),

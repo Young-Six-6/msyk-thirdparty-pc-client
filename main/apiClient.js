@@ -590,6 +590,12 @@ class ApiClient {
     });
   }
 
+  async getSystemExerciseDetail({ id } = {}) {
+    const exerciseId = String(id || '').trim();
+    if (!exerciseId) throw new Error('系统练习缺少记录编号');
+    return await this.postSigned('/ws/student/exercise/statistics', { id: exerciseId });
+  }
+
   getSystemExerciseQuestionUrl({ questionId, subjectCode, difficulty = '', showAnswer = 0, auth = '' } = {}) {
     const studentId = String(this.session.studentId || '');
     const classId = String(this.session.classId || this.session.groupId || '');

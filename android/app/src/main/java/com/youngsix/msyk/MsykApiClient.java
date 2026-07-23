@@ -171,6 +171,8 @@ final class MsykApiClient {
                 return systemExerciseStart(payload);
             case "systemExerciseSubmit":
                 return systemExerciseSubmit(payload);
+            case "systemExerciseDetail":
+                return systemExerciseDetail(payload);
             case "systemExerciseQuestionUrl":
                 return systemExerciseQuestionUrl(payload);
             case "schoolExerciseAccess":
@@ -454,6 +456,11 @@ final class MsykApiClient {
                 "subjectCode", required(payload, "subjectCode"), "gradeCode", exerciseGrade(payload),
                 "bookId", value(payload, "bookId", ""), "doTime", value(payload, "doTime", "0"),
                 "teacherExamId", required(payload, "teacherExamId"))));
+    }
+
+    private JSONObject systemExerciseDetail(JSONObject payload) throws Exception {
+        return wrap(postSigned("/ws/student/exercise/statistics", params(
+                "id", required(payload, "id"))));
     }
 
     private JSONObject systemExerciseQuestionUrl(JSONObject payload) throws Exception {

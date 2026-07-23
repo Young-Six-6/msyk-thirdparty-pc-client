@@ -12,9 +12,10 @@
     <button id="closeBtn" class="icon-btn" type="button" aria-label="退出练习" title="退出练习">&#215;</button>
     <strong id="progress">第 1 题</strong>
     <span id="timer">00:00:00</span>
+    <button id="debugFillCorrectBtn" class="debug-fill-btn" type="button" hidden>一键正确</button>
     <button id="submitBtn" class="submit-btn" type="button">提交练习</button>
   </header>
-  <main><webview id="questionView" partition="persist:msyk" data-viewer-title="系统练习题目"></webview></main>
+  <main><webview id="questionView" src="about:blank" partition="persist:msyk" data-viewer-title="系统练习题目"></webview></main>
   <nav id="answerBar" class="answerbar" aria-label="题目导航"></nav>
   <script src="../common/theme.js"></script>
   <script src="../common/native-android.js?v=1.3.0"></script>
